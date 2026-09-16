@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "powerpoint": {
+      "command": "uvx",
+      "args": ["--with", "mcp<2", "powerpoint-mcp"]
+    }
+  }
+}
