@@ -15,6 +15,8 @@ import { MaterialsView } from './components/MaterialsView';
 import { DetailModal } from './components/DetailModal';
 import { ScheduleItem } from './data/scheduleData';
 import { Lecture1 } from './components/presentation/Lecture1';
+import { Lecture2 } from './components/presentation/Lecture2';
+import { Lecture3 } from './components/presentation/Lecture3';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'schedule' | 'lectures' | 'labs' | 'materials'>('schedule');
@@ -26,6 +28,14 @@ export default function App() {
       
       {activePresentation === 'lec1' && (
         <Lecture1 onClose={() => setActivePresentation(null)} />
+      )}
+
+      {activePresentation === 'lec2' && (
+        <Lecture2 onClose={() => setActivePresentation(null)} />
+      )}
+
+      {activePresentation === 'lec3' && (
+        <Lecture3 onClose={() => setActivePresentation(null)} />
       )}
 
       {/* Top Banner / Header */}

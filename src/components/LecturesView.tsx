@@ -75,7 +75,25 @@ export const LecturesView: React.FC<LecturesViewProps> = ({ onSelectItem, onStar
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
-                    Запустить презентацию
+                    Презентация
+                  </button>
+                )}
+                {idx === 1 && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onStartPresentation('lec2'); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors shadow-xs"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    Презентация
+                  </button>
+                )}
+                {idx === 2 && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onStartPresentation('lec3'); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 text-white hover:bg-cyan-700 transition-colors shadow-xs"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    Презентация
                   </button>
                 )}
                 

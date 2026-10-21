@@ -442,8 +442,57 @@ const SummarySlide = () => (
   </div>
 );
 
+// BOARD PLAN & NOTES CONTENT FOR LECTURE 1
+const Lecture1Notes = () => (
+  <div className="space-y-6 text-xs sm:text-sm leading-relaxed">
+    <div className="border-b border-neutral-800 pb-4">
+      <span className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">План работы у доски и академический конспект</span>
+      <h2 className="text-xl font-bold font-['Newsreader'] text-white mt-1">Лекция №1: Масштабные уровни, размерные эффекты и мезоскопика</h2>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-neutral-950/80 p-4 rounded-xl border border-neutral-800 space-y-2">
+        <h3 className="font-bold text-emerald-400 border-b border-neutral-800 pb-1">ДОСКА 1: Доля поверхностных атомов $\alpha(R)$</h3>
+        <p className="text-neutral-300">• Объем сферы: <MathView math="V = \frac{4}{3}\pi R^3" />, объем моноатомной оболочки: <MathView math="V_{surf} \approx 4\pi R^2 a" />.</p>
+        <div className="bg-neutral-900/80 p-2 rounded text-center font-mono text-emerald-300">
+          <MathView math="\alpha(R) = \frac{N_{surf}}{N_{total}} \approx \frac{3a}{R}" />
+        </div>
+        <p className="text-neutral-400 text-xs">При $R = 1.5$ нм ($a = 0.3$ нм) доля атомов на поверхности $\alpha \approx 60\%$.</p>
+      </div>
+
+      <div className="bg-neutral-950/80 p-4 rounded-xl border border-neutral-800 space-y-2">
+        <h3 className="font-bold text-teal-400 border-b border-neutral-800 pb-1">ДОСКА 2: Уравнение Гиббса–Томсона</h3>
+        <p className="text-neutral-300">• Избыточная свободная энергия Гиббса границы: $G_s = \sigma A$.</p>
+        <div className="bg-neutral-900/80 p-2 rounded text-center font-mono text-teal-300">
+          <MathView math="T_m(R) = T_m(\infty) \left( 1 - \frac{2\sigma_{sl} \Omega}{\Delta H_{melt} R} \right)" />
+        </div>
+        <p className="text-neutral-400 text-xs">Размерное падение температуры плавления наночастиц золота с $1064^\circ\text{C}$ до $350^\circ\text{C}$.</p>
+      </div>
+
+      <div className="bg-neutral-950/80 p-4 rounded-xl border border-neutral-800 space-y-2">
+        <h3 className="font-bold text-cyan-400 border-b border-neutral-800 pb-1">ДОСКА 3: Баллистический транспорт (Ландауэр)</h3>
+        <p className="text-neutral-300">• Критерий: $L \le l_e$ (длина образца меньше длины свободного пробега).</p>
+        <div className="bg-neutral-900/80 p-2 rounded text-center font-mono text-cyan-300">
+          <MathView math="G = \frac{2e^2}{h} M \approx M \cdot (12.9\text{ кОм})^{-1}" />
+        </div>
+        <p className="text-neutral-400 text-xs">Сопротивление не зависит от длины проводника (квантовый контакт).</p>
+      </div>
+
+      <div className="bg-neutral-950/80 p-4 rounded-xl border border-neutral-800 space-y-2">
+        <h3 className="font-bold text-amber-400 border-b border-neutral-800 pb-1">ДОСКА 4: Плотность состояний $g(E)$</h3>
+        <ul className="text-xs space-y-1 text-neutral-300">
+          <li>• <strong>3D:</strong> $g(E) \propto \sqrt{E}$ (парабола)</li>
+          <li>• <strong>2D:</strong> $g(E) \propto \sum \Theta(E - E_n)$ (ступенчатая)</li>
+          <li>• <strong>1D:</strong> $g(E) \propto \sum (E - E_n)^{-1/2}$ (пики Ван Хова)</li>
+          <li>• <strong>0D:</strong> $g(E) \propto \sum \delta(E - E_n)$ (дельта-пики)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+);
+
 // MAIN EXPORT
-export const Lecture1: React.FC = () => {
+export const Lecture1: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const slides = [
     <CoverSlide key="1" />,
     <DefinitionsSlide key="2" />,
@@ -457,5 +506,13 @@ export const Lecture1: React.FC = () => {
     <SummarySlide key="10" />
   ];
 
-  return <SlideViewer slides={slides} courseTitle="Физические основы нанотехнологий • Лекция №1" />;
+  return (
+    <SlideViewer 
+      slides={slides} 
+      title="Физические основы нанотехнологий • Лекция №1: Введение и масштабы" 
+      onClose={onClose}
+      notesContent={<Lecture1Notes />}
+    />
+  );
 };
+
