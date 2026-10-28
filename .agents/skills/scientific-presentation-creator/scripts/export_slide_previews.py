@@ -41,7 +41,22 @@ def export_pptx_to_png(pptx_path: str, output_dir: str, slide_indices: list[int]
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    import argparse
+    parser = argparse.ArgumentParser(description="Export PPTX slides to PNG")
+    parser.add_argument("pos_pptx", nargs="?", default=None, help="Path to PPTX file (positional)")
+    parser.add_argument("pos_out", nargs="?", default=None, help="Output directory (positional)")
+    parser.add_argument("--pptx", dest="flag_pptx", default=None, help="Path to PPTX file")
+    parser.add_argument("--out", dest="flag_out", default=None, help="Output directory")
+    parser.add_argument("--slides", dest="slides", nargs="*", type=int, default=None, help="Slide indices to export")
+    args = parser.parse_args()
+
+    pptx_path = args.flag_pptx or args.pos_pptx
+    out_dir = args.flag_out or args.pos_out
+
+    if not pptx_path or not out_dir:
         print("Usage: python export_slide_previews.py <path_to_pptx> <output_dir>")
+        print("   or: python export_slide_previews.py --pptx <path_to_pptx> --out <output_dir>")
         sys.exit(1)
-    export_pptx_to_png(sys.argv[1], sys.argv[2])
+
+    export_pptx_to_png(pptx_path, out_dir, slide_indices=args.slides)
+

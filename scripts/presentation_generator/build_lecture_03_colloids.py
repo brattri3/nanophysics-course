@@ -1,52 +1,92 @@
 """
-Генератор презентации Лекции №3:
+Генератор презентаций Лекции №3:
 «Термодинамика дисперсных систем и коллоидных растворов (Часть 2)»
-По стандарту навыка scientific-presentation-creator (облегченная практико-ориентированная версия для 3 курса ГУАП):
-- Широкоэкранный формат 16:9 (13.333 x 7.5 дюймов)
-- 17 слайдов (полное покрытие темы по РПД и календарному плану)
-- Крупный читаемый шрифт карточек (11.4 pt, заголовки 13.2 pt), алгоритмическая подача без перегрузки
-- Математически точные диаграммы (dpi=300), баннеры выводов и живые заметки докладчика.
+Стандарт дизайн-кода ГУАП (SUAI Design Code) для курса «Физические основы нанотехнологий».
+
+Функционал скрипта:
+1. Генерация 3 дизайн-вариаций для первых 3 слайдов Лекции №3:
+   - Вариация 1 (Classic SUAI Corporate): строгий белый корпоративный стиль ГУАП,
+     полный официальный логотип, темно-синие заголовки, сетка 2x3 карточек проблем,
+     подлинная микрофотография Faraday/Fe3O4, светлый центрированный разделитель.
+   - Вариация 2 (Modern Scientific Infographic): инженерно-инфографический стиль,
+     контейнерная плашка с бейджами тем, цветовое кодирование карточек проблем,
+     технологический оверлей на микрофотографии, контрастный блок тезиса.
+   - Вариация 3 (High-Contrast Problem-First / Deep Navy Hero): полноэкранный глубокий
+     темно-синий холст (#002C5F), инвертированный белый логотип, циановые акценты,
+     монументальный статус и максимальная читаемость с дальних рядов аудитории.
+2. Сборка сравнительной презентации:
+   course_materials/semester_4/lectures/lecture_03_comparative_variations.pptx (14 слайдов)
+   (9 вариативных слайдов + титул + 4 аналитические матрицы сопоставления).
+3. Сборка основной академической презентации лекции:
+   course_materials/semester_4/lectures/lecture_03_colloids.pptx (17 слайдов)
+   (Слайды 1–3 основной вариации + 13 теоретических слайдов + Слайд 17 технологического применения).
+4. Полная очистка от упоминаний лабораторных работ (R1/R5):
+   Слайд 17 переработан в прикладные модули «Коллоидная диагностика: плазмонный резонанс
+   и дзета-потенциал (Au)» и «Промышленный синтез стабильных наносуспензий и коагуляция (Fe(OH)₃)».
 """
 
 import os
 import sys
+from typing import List, Dict, Any, Optional
 from PIL import Image
+
+import pptx
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 
-# Импортируем базовые функции и палитру из шаблона навыка scientific-presentation-creator
+# Подключение базового конструктора и дизайн-стандартов навыка
 SKILL_SCRIPTS = os.path.abspath(".agents/skills/scientific-presentation-creator/scripts")
 if SKILL_SCRIPTS not in sys.path:
     sys.path.insert(0, SKILL_SCRIPTS)
 
 from template_deck_builder import (
+    SUAI_PALETTE, PROBLEM_TAXONOMY,
     COLOR_NAVY, COLOR_BLUE, COLOR_DARK, COLOR_MUTED,
-    COLOR_CARD_BG, COLOR_CARD_BORDER, COLOR_BANNER_BG, COLOR_PLACEHOLDER_BG,
-    create_base_presentation, add_header, add_takeaway_banner, set_speaker_notes
+    COLOR_CARD_BG, COLOR_CARD_BORDER, COLOR_BANNER_BG, COLOR_WHITE,
+    find_asset, get_problem_icon_path,
+    create_base_presentation, add_signature_gradient_line,
+    add_suai_header, add_header, add_takeaway_banner, add_content_card,
+    add_figure_or_placeholder, add_problem_badge, set_speaker_notes,
+    create_title_slide, create_problem_intro_slide,
+    create_section_divider_slide, create_comparative_matrix_slide
 )
 
+# Пути к графическим ассетам и результирующим презентациям
 FIG_DIR = os.path.abspath("course_materials/semester_4/lectures/figures_l03")
-OUT_PPTX = os.path.abspath("course_materials/semester_4/lectures/lecture_03_colloids.pptx")
+TEMPLATES_DIR = os.path.abspath("course_materials/templates")
+OUT_MAIN_PPTX = os.path.abspath("course_materials/semester_4/lectures/lecture_03_colloids.pptx")
+OUT_VARIATIONS_PPTX = os.path.abspath("course_materials/semester_4/lectures/lecture_03_comparative_variations.pptx")
+PREVIEWS_VARIATIONS_DIR = os.path.abspath("previews_variations")
 
+
+def get_variation_preview_path(filename: str) -> Optional[str]:
+    path = os.path.join(PREVIEWS_VARIATIONS_DIR, filename)
+    return path if os.path.exists(path) else None
+
+
+# ==============================================================================
+# 1. Вспомогательные функции рендеринга карточек и фигур
+# ==============================================================================
 
 def add_rich_card(slide, left: float, top: float, width: float, height: float,
-                  heading: str, bullets: list[str], font_size: float = 11.4):
-    """Добавляет аккуратную карточку теории с крупным шрифтом (11.2–11.5 pt) и поддержкой формул."""
+                  heading: str, bullets: List[str], font_size: float = 11.4,
+                  accent_color: Optional[RGBColor] = None):
+    """Добавляет стандартизированную карточку теории с поддержкой формульных строк [Ф]."""
     card = slide.shapes.add_shape(
         MSO_SHAPE.ROUNDED_RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height)
     )
     card.fill.solid()
-    card.fill.fore_color.rgb = COLOR_CARD_BG
-    card.line.color.rgb = COLOR_CARD_BORDER
+    card.fill.fore_color.rgb = SUAI_PALETTE["CARD_BG"]
+    card.line.color.rgb = SUAI_PALETTE["CARD_BORDER"]
     card.line.width = Pt(1.1)
 
     tf = card.text_frame
     tf.word_wrap = True
     tf.vertical_anchor = MSO_ANCHOR.TOP
-    tf.margin_left = Inches(0.15)
+    tf.margin_left = Inches(0.16)
     tf.margin_right = Inches(0.14)
     tf.margin_top = Inches(0.10)
     tf.margin_bottom = Inches(0.08)
@@ -57,7 +97,7 @@ def add_rich_card(slide, left: float, top: float, width: float, height: float,
     p0.font.name = "Arial"
     p0.font.size = Pt(13.2)
     p0.font.bold = True
-    p0.font.color.rgb = COLOR_NAVY
+    p0.font.color.rgb = accent_color or SUAI_PALETTE["DEEP_NAVY"]
     p0.space_after = Pt(4)
 
     for b in bullets:
@@ -70,37 +110,39 @@ def add_rich_card(slide, left: float, top: float, width: float, height: float,
             p.font.name = "Arial"
             p.font.size = Pt(font_size + 0.4)
             p.font.bold = True
-            p.font.color.rgb = COLOR_BLUE
+            p.font.color.rgb = SUAI_PALETTE["BLUE"]
             p.space_before = Pt(1.5)
             p.space_after = Pt(2.5)
         elif is_sub:
             p.text = b
             p.font.name = "Arial"
             p.font.size = Pt(font_size - 0.2)
-            p.font.color.rgb = COLOR_DARK
+            p.font.color.rgb = SUAI_PALETTE["CHARCOAL"]
             p.space_after = Pt(2.0)
         else:
             p.text = f"• {b}" if not b.startswith("•") else b
             p.font.name = "Arial"
             p.font.size = Pt(font_size)
-            p.font.color.rgb = COLOR_DARK
+            p.font.color.rgb = SUAI_PALETTE["CHARCOAL"]
             p.space_after = Pt(2.5)
 
 
 def add_fitted_figure(slide, left: float, top: float, max_w: float, max_h: float,
                       image_filename: str, placeholder_desc: str, use_placeholder_only: bool = False):
-    """
-    Вставляет изображение с точным вписыванием в ограничивающую рамку (left, top, max_w, max_h)
-    и центрированием без искажения пропорций и без наезда на нижний баннер.
-    """
+    """Вставляет изображение с сохранением пропорций в заданную ограничивающую рамку."""
     image_path = os.path.join(FIG_DIR, image_filename)
+    if not os.path.exists(image_path):
+        resolved = find_asset(image_filename)
+        if resolved:
+            image_path = resolved
+
     if (not use_placeholder_only) and os.path.exists(image_path):
         frame = slide.shapes.add_shape(
             MSO_SHAPE.ROUNDED_RECTANGLE, Inches(left), Inches(top), Inches(max_w), Inches(max_h)
         )
         frame.fill.solid()
         frame.fill.fore_color.rgb = RGBColor(255, 255, 255)
-        frame.line.color.rgb = COLOR_CARD_BORDER
+        frame.line.color.rgb = SUAI_PALETTE["CARD_BORDER"]
         frame.line.width = Pt(1.0)
 
         with Image.open(image_path) as img:
@@ -126,65 +168,521 @@ def add_fitted_figure(slide, left: float, top: float, max_w: float, max_h: float
             MSO_SHAPE.RECTANGLE, Inches(left), Inches(top), Inches(max_w), Inches(max_h)
         )
         ph.fill.solid()
-        ph.fill.fore_color.rgb = COLOR_PLACEHOLDER_BG
-        ph.line.color.rgb = COLOR_BLUE
+        ph.fill.fore_color.rgb = RGBColor(250, 250, 252)
+        ph.line.color.rgb = SUAI_PALETTE["BLUE"]
         ph.line.width = Pt(1.5)
         tf = ph.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
         p.alignment = PP_ALIGN.CENTER
-        p.text = f"[ЗАГОТОВКА ИЛЛЮСТРАЦИИ: {image_filename}]\n\n{placeholder_desc}"
+        p.text = f"[НАУЧНАЯ ИЛЛЮСТРАЦИЯ: {image_filename}]\n\n{placeholder_desc}"
         p.font.name = "Arial"
         p.font.size = Pt(13)
         p.font.italic = True
-        p.font.color.rgb = COLOR_MUTED
+        p.font.color.rgb = SUAI_PALETTE["MUTED_STEEL"]
 
 
-SLIDES_SPEC = [
-    # -------------------------------------------------------------------------
-    # -------------------------------------------------------------------------
-    # Слайд 1
-    # -------------------------------------------------------------------------
-    {
-        "num": 1,
-        "layout": "A",
-        "title": "Лекция №3. Термодинамика дисперсных систем и коллоидных растворов",
-        "subtitle": "Раздел 2 «Особенности термодинамики наноструктур» (Часть 2 из 4)  |  Кафедра №3 ГУАП  |  Преподаватель: Попов Д.А.",
-        "cards": [
-            {
-                "heading": "1. Термодинамический парадокс наностабильности",
-                "height": 2.45,
-                "bullets": [
-                    "У наночастиц в растворе колоссальная площадь поверхности и избыток энергии Гиббса:",
-                    "  [Ф] ΔG_s = σ · S > 0   (незащищенный оксид железа слипается в осадок)",
-                    "Рубиновый золь золота Фарадея 1857 г. стабилен >170 лет благодаря электростатическому барьеру ДЭС."
-                ]
-            },
-            {
-                "heading": "2. Четыре ключевых шага лекции",
-                "height": 2.45,
-                "bullets": [
-                    "Шаг 1: Геометрический взрыв поверхности и капиллярные силы.",
-                    "Шаг 2: Строение мицеллы и двойного электрического слоя.",
-                    "Шаг 3: Дзета-потенциал и электрокинетические эффекты.",
-                    "Шаг 4: Теория устойчивости ДЛФО и закон 6-й степени."
-                ]
-            }
-        ],
-        "fig": "fig_01_faraday_vs_iron_oxide.jpg",
-        "fig_desc": "Сравнение: слипшийся оксид железа (слева) и рубиновый золь золота Фарадея 1857 г. (справа)",
-        "takeaway": "Устойчивость наносистем — результат динамического баланса между ван-дер-ваальсовым слипанием и барьером ДЭС.",
-        "notes": (
-            "1. Термодинамический парадокс: Одиночная наночастица обладает колоссальным избытком свободной энергии Гиббса ΔG_s = σS > 0. Без специальной стабилизации частицы неизбежно агрегируют и выпадают в осадок (как оксид железа слева на фотографии).\n"
-            "2. Исторический эталон: Рубиновый гидрозоль золота, синтезированный Майклом Фарадеем в 1857 году, хранится в Королевском институте Лондона уже более 170 лет без признаков седиментации благодаря защитному барьеру двойного электрического слоя.\n"
-            "3. Четыре шага лекции: Мы последовательно разберем геометрию поверхности, правила сборки мицелл, физический смысл дзета-потенциала и теорию устойчивости ДЛФО."
+# ==============================================================================
+# 2. Реализация 3 дизайн-вариаций для Слайдов 1, 2, 3
+# ==============================================================================
+
+def add_variation_1_slides(prs: Presentation) -> List[Any]:
+    """
+    Вариация 1: «Академический классический стиль ГУАП» (Classic SUAI Corporate)
+    - Слайд 1: Белый фон, цветной логотип ГУАП, темно-синяя иерархия, реквизиты однократно.
+    - Слайд 2: Сетка 2x3 карточек 6 проблем с векторными иконками, сплит-визуал Фарадей/Fe3O4.
+    - Слайд 3: Светлый центрированный слайд-разделитель (Layout S) первой проблемы (Агрегация).
+    """
+    slides = []
+
+    # ---------------------------------------------------------
+    # Вариация 1: Слайд 1 (Титульный лист ГУАП)
+    # ---------------------------------------------------------
+    s1 = create_title_slide(
+        prs,
+        title="Термодинамика дисперсных систем и коллоидных растворов",
+        subtitle="Часть 2: Поверхностная энергия, двойной электрический слой (ДЭС) и устойчивость коллоидов",
+        course_info="КУРС «ФИЗИЧЕСКИЕ ОСНОВЫ НАНОТЕХНОЛОГИЙ» • 3 КУРС • ЛЕКЦИЯ №3",
+        teacher_info="Преподаватель: доцент Попов Д.А.",
+        dept_info="Кафедра №3 «Физики и нанотехнологий» ГУАП | Санкт-Петербург, 2026",
+        style="classic",
+        notes=(
+            "1. Место лекции в курсе: Раздел 2 «Особенности термодинамики наноструктур» дисциплины "
+            "«Физические основы нанотехнологий» (бакалавриат, 3 курс ГУАП). Лекция закладывает фундамент "
+            "жидкофазного синтеза, устойчивости золей и наноколлоидов.\n"
+            "2. Соответствие РПД: Темы №7 и №8 календарного плана (термодинамика границ раздела, ДЭС, теория ДЛФО).\n"
+            "3. Обратите внимание студентов: все университетские реквизиты кафедры и преподавателя зафиксированы "
+            "на титульном листе и далее на рабочих слайдах не повторяются."
         )
-    },
+    )
+    slides.append(s1)
+
+    # ---------------------------------------------------------
+    # Вариация 1: Слайд 2 (Вводный проблемный: 6 барьеров)
+    # ---------------------------------------------------------
+    split_img = find_asset("fig_01_split_faraday_vs_fe3o4.png") or os.path.join(FIG_DIR, "fig_01_split_faraday_vs_fe3o4.png")
+    s2 = create_problem_intro_slide(
+        prs,
+        title="Шесть технологических барьеров нанодисперсных систем",
+        image_path=split_img,
+        image_caption="Золь золота Фарадея (1857 г.) vs Агрегат наночастиц Fe3O4 (сканирующая и просвечивающая ЭМ — СЭМ/ПЭМ)",
+        takeaway="Без электростатической или стерической защиты любая наносистема неизбежно разрушается.",
+        notes=(
+            "1. Постановка проблемы: Переход к наномасштабу 1–100 нм сопровождается колоссальным ростом удельной "
+            "поверхности. Это порождает 6 критических барьеров: слипание (агрегацию), гравитационный осадок, "
+            "старение при хранении, сдвиговое разрушение при транспорте, сложность сепарации и несовместимость с матрицами.\n"
+            "2. Подлинный научный эталон: Справа представлен рубиновый золь золота Майкла Фарадея (1857 г.), стабильный "
+            "уже более 170 лет благодаря защитному ДЭС, в контрасте с незащищенным оксидом железа Fe3O4, скоагулировавшим в осадок."
+        )
+    )
+    slides.append(s2)
+
+    # ---------------------------------------------------------
+    # Вариация 1: Слайд 3 (Разделитель Проблемы №1: Агрегация)
+    # ---------------------------------------------------------
+    s3 = create_section_divider_slide(
+        prs,
+        problem_id="aggregation",
+        title="Слипание и термодинамическая агрегация наночастиц",
+        subtitle="ТЕХНОЛОГИЧЕСКИЙ БАРЬЕР №1",
+        thesis="Колоссальная удельная поверхность создает избыточную свободную энергию ΔGs = σ · S > 0, стремящуюся скоагулировать незащищенный золь в плотный осадок.",
+        roadmap_steps=[
+            "1. Геометрия поверхности и термодинамика Гиббса",
+            "2. Строение мицеллы и двойной электрический слой (ДЭС)",
+            "3. Барьер Дерягина–Ландау–Фервея–Овербека (ДЛФО)"
+        ],
+        style="light",
+        notes=(
+            "1. Фокус раздела: Открываем разбор первого и фундаментального барьера — агрегации наночастиц.\n"
+            "2. Бритва Оккама: Слайд-разделитель содержит только ключевой физический тезис в 1–2 предложениях, "
+            "акцентируя внимание на избытке свободной энергии Гиббса ΔGs = σ · S > 0.\n"
+            "3. Дорожная карта: В данном блоке мы последовательно разберем геометрический взрыв поверхности, "
+            "анатомию ДЭС и расчет потенциального барьера теории ДЛФО."
+        )
+    )
+    slides.append(s3)
+
+    return slides
+
+
+def add_variation_2_slides(prs: Presentation) -> List[Any]:
+    """
+    Вариация 2: «Инженерно-инфографический стиль» (Modern Scientific Infographic)
+    - Слайд 1: Контейнерная карточка #F4F7FA, бейдж дисциплины [КУРС «ФОН»], акцентные плашки.
+    - Слайд 2: Карточки проблем с индивидуальными цветовыми бейджами [БАРЬЕР 1..6], формульный акцент.
+    - Слайд 3: Модернизированный центрированный разделитель с акцентным кольцом и нумерованными шагами.
+    """
+    slides = []
+
+    # ---------------------------------------------------------
+    # Вариация 2: Слайд 1 (Инфографический титул)
+    # ---------------------------------------------------------
+    slide1 = prs.slides.add_slide(prs.slide_layouts[6])
+
+    # Внешняя контурная карточка-контейнер
+    container = slide1.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.60), Inches(0.50), Inches(12.133), Inches(6.50)
+    )
+    container.fill.solid()
+    container.fill.fore_color.rgb = SUAI_PALETTE["CARD_BG"]
+    container.line.color.rgb = SUAI_PALETTE["CARD_BORDER"]
+    container.line.width = Pt(1.5)
+
+    # Логотип ГУАП
+    logo_path = find_asset("guap_logo_extracted.png") or find_asset("guap_image4.png")
+    if logo_path and os.path.exists(logo_path):
+        slide1.shapes.add_picture(logo_path, Inches(1.00), Inches(0.85), width=Inches(3.20))
+
+    # Бейдж курса в правом верхнем углу контейнера
+    badge = slide1.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.60), Inches(0.85), Inches(5.60), Inches(0.46)
+    )
+    badge.fill.solid()
+    badge.fill.fore_color.rgb = SUAI_PALETTE["BLUE"]
+    badge.line.fill.background()
+    tf_b = badge.text_frame
+    p_b = tf_b.paragraphs[0]
+    p_b.alignment = PP_ALIGN.CENTER
+    p_b.text = "КУРС «ФИЗИЧЕСКИЕ ОСНОВЫ НАНОТЕХНОЛОГИЙ» • 3 КУРС"
+    p_b.font.name = "Arial"
+    p_b.font.size = Pt(10.5)
+    p_b.font.bold = True
+    p_b.font.color.rgb = SUAI_PALETTE["WHITE"]
+
+    # Фирменная градиентная линия ГУАП
+    add_signature_gradient_line(slide1, left=1.00, top=1.65, width=11.333, height=0.03)
+
+    # Название лекции
+    tb_t = slide1.shapes.add_textbox(Inches(1.00), Inches(2.05), Inches(11.333), Inches(1.40))
+    tf_t = tb_t.text_frame
+    tf_t.word_wrap = True
+    p_t = tf_t.paragraphs[0]
+    p_t.text = "Термодинамика дисперсных систем и коллоидных растворов"
+    p_t.font.name = "Arial"
+    p_t.font.size = Pt(29)
+    p_t.font.bold = True
+    p_t.font.color.rgb = SUAI_PALETTE["DEEP_NAVY"]
+
+    # Подзаголовок в пастельной плашке
+    sub_box = slide1.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.00), Inches(3.70), Inches(10.50), Inches(0.55)
+    )
+    sub_box.fill.solid()
+    sub_box.fill.fore_color.rgb = SUAI_PALETTE["TAKEAWAY_BG"]
+    sub_box.line.color.rgb = SUAI_PALETTE["CYAN"]
+    sub_box.line.width = Pt(1.0)
+    tf_sb = sub_box.text_frame
+    p_sb = tf_sb.paragraphs[0]
+    p_sb.alignment = PP_ALIGN.LEFT
+    p_sb.text = "  Часть 2: Поверхностная энергия, двойной электрический слой (ДЭС) и устойчивость коллоидов"
+    p_sb.font.name = "Arial"
+    p_sb.font.size = Pt(13.5)
+    p_sb.font.bold = True
+    p_sb.font.color.rgb = SUAI_PALETTE["BLUE"]
+
+    # Информационный блок преподавателя и кафедры
+    meta_box = slide1.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.00), Inches(4.70), Inches(11.333), Inches(1.80)
+    )
+    meta_box.fill.solid()
+    meta_box.fill.fore_color.rgb = SUAI_PALETTE["WHITE"]
+    meta_box.line.color.rgb = SUAI_PALETTE["CARD_BORDER"]
+    meta_box.line.width = Pt(1.0)
+
+    tf_m = meta_box.text_frame
+    tf_m.word_wrap = True
+    p_m1 = tf_m.paragraphs[0]
+    p_m1.text = "Преподаватель: доцент Попов Д.А."
+    p_m1.font.name = "Arial"
+    p_m1.font.size = Pt(14)
+    p_m1.font.bold = True
+    p_m1.font.color.rgb = SUAI_PALETTE["DEEP_NAVY"]
+
+    p_m2 = tf_m.add_paragraph()
+    p_m2.text = "Кафедра №3 «Физики и нанотехнологий» ГУАП | Санкт-Петербург, 2026"
+    p_m2.font.name = "Arial"
+    p_m2.font.size = Pt(12)
+    p_m2.font.color.rgb = SUAI_PALETTE["MUTED_STEEL"]
+    p_m2.space_before = Pt(4)
+
+    p_m3 = tf_m.add_paragraph()
+    p_m3.text = "Статус дисциплины: Обязательный общепрофессиональный модуль бакалавриата (03.03.01)"
+    p_m3.font.name = "Arial"
+    p_m3.font.size = Pt(11)
+    p_m3.font.bold = True
+    p_m3.font.color.rgb = SUAI_PALETTE["GREEN"]
+    p_m3.space_before = Pt(6)
+
+    set_speaker_notes(
+        slide1,
+        "Вариация 2 (Инженерная инфографика): Модульная композиция с контейнером и бейджами "
+        "акцентирует внимание на структурированности курса. Все реквизиты указаны однократно."
+    )
+    slides.append(slide1)
+
+    # ---------------------------------------------------------
+    # Вариация 2: Слайд 2 (Инфографический проблемный слайд)
+    # ---------------------------------------------------------
+    slide2 = prs.slides.add_slide(prs.slide_layouts[6])
+    add_suai_header(
+        slide2,
+        "Шесть технологических барьеров нанодисперсных систем",
+        "Инфографическая карта физических вызовов и управляющих уравнений наноматериалов"
+    )
+
+    # Карточки с цветными плашками
+    prob_list = [
+        ("aggregation", "БАРЬЕР 1: СЛИПАНИЕ", SUAI_PALETTE["RED"]),
+        ("sedimentation", "БАРЬЕР 2: ОСАДОК", SUAI_PALETTE["DEEP_NAVY"]),
+        ("storage", "БАРЬЕР 3: СТАРЕНИЕ", SUAI_PALETTE["ORANGE"]),
+        ("transport", "БАРЬЕР 4: ТРАНСПОРТ", SUAI_PALETTE["PURPLE"]),
+        ("separation", "БАРЬЕР 5: СЕПАРАЦИЯ", SUAI_PALETTE["CYAN"]),
+        ("processability", "БАРЬЕР 6: ФОРМУЛЯЦИЯ", SUAI_PALETTE["GREEN"]),
+    ]
+
+    col_w = 2.80
+    row_h = 1.55
+    start_x = 0.60
+    start_y = 1.35
+
+    for idx, (pid, badge_label, b_color) in enumerate(prob_list):
+        c_idx = idx % 2
+        r_idx = idx // 2
+        card_x = start_x + c_idx * (col_w + 0.15)
+        card_y = start_y + r_idx * (row_h + 0.15)
+
+        meta = PROBLEM_TAXONOMY.get(pid, {})
+
+        # Карточка
+        card = slide2.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE, Inches(card_x), Inches(card_y),
+            Inches(col_w), Inches(row_h)
+        )
+        card.fill.solid()
+        card.fill.fore_color.rgb = SUAI_PALETTE["CARD_BG"]
+        card.line.color.rgb = SUAI_PALETTE["CARD_BORDER"]
+        card.line.width = Pt(1.0)
+
+        # Верхний цветной бейдж категории
+        t_badge = slide2.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE, Inches(card_x + 0.08), Inches(card_y + 0.08),
+            Inches(col_w - 0.16), Inches(0.24)
+        )
+        t_badge.fill.solid()
+        t_badge.fill.fore_color.rgb = b_color
+        t_badge.line.fill.background()
+        tf_tb = t_badge.text_frame
+        p_tb = tf_tb.paragraphs[0]
+        p_tb.alignment = PP_ALIGN.CENTER
+        p_tb.text = badge_label
+        p_tb.font.name = "Arial"
+        p_tb.font.size = Pt(8.5)
+        p_tb.font.bold = True
+        p_tb.font.color.rgb = SUAI_PALETTE["WHITE"]
+
+        # Иконка
+        add_problem_badge(slide2, card_x + 0.10, card_y + 0.40, pid, size=0.48)
+
+        # Текст
+        tb = slide2.shapes.add_textbox(
+            Inches(card_x + 0.66), Inches(card_y + 0.36), Inches(col_w - 0.74), Inches(row_h - 0.44)
+        )
+        tf = tb.text_frame
+        tf.word_wrap = True
+        tf.margin_top = Inches(0.0)
+        tf.margin_left = Inches(0.0)
+
+        p1 = tf.paragraphs[0]
+        p1.text = meta.get("formula", "")
+        p1.font.name = "Arial"
+        p1.font.size = Pt(10.5)
+        p1.font.bold = True
+        p1.font.color.rgb = SUAI_PALETTE["DEEP_NAVY"]
+
+        p2 = tf.add_paragraph()
+        p2.text = meta.get("description", "")
+        p2.font.name = "Arial"
+        p2.font.size = Pt(8.8)
+        p2.font.color.rgb = SUAI_PALETTE["CHARCOAL"]
+        p2.space_before = Pt(2)
+
+    # Правая панель с иллюстрацией
+    split_img = find_asset("fig_01_split_faraday_vs_fe3o4.png") or os.path.join(FIG_DIR, "fig_01_split_faraday_vs_fe3o4.png")
+    img_x = 6.65
+    img_y = 1.35
+    img_w = 6.08
+    img_h = 4.45
+
+    if split_img and os.path.exists(split_img):
+        slide2.shapes.add_picture(split_img, Inches(img_x), Inches(img_y), width=Inches(img_w))
+    else:
+        add_figure_or_placeholder(slide2, img_x, img_y, img_w, img_h, placeholder_desc="Фото Фарадея и СЭМ Fe3O4")
+
+    # Академическая подпись
+    tb_cap = slide2.shapes.add_textbox(Inches(img_x), Inches(img_y + img_h + 0.05), Inches(img_w), Inches(0.65))
+    tf_cap = tb_cap.text_frame
+    p_cap = tf_cap.paragraphs[0]
+    p_cap.text = "Научная верификация: Колба золя Au Фарадея 1857 г. (слева) vs Агрегация Fe3O4 (сканирующая и просвечивающая ЭМ — СЭМ/ПЭМ)"
+    p_cap.font.name = "Arial"
+    p_cap.font.size = Pt(9.5)
+    p_cap.font.italic = True
+    p_cap.font.color.rgb = SUAI_PALETTE["MUTED_STEEL"]
+
+    add_takeaway_banner(slide2, "Без электростатической или стерической защиты любая наносистема неизбежно разрушается.")
+    set_speaker_notes(
+        slide2,
+        "Вариация 2: Цветовые бейджи барьеров создают мгновенную визуальную навигацию по технологическим вызовам."
+    )
+    slides.append(slide2)
+
+    # ---------------------------------------------------------
+    # Вариация 2: Слайд 3 (Инфографический разделитель)
+    # ---------------------------------------------------------
+    slide3 = prs.slides.add_slide(prs.slide_layouts[6])
+
+    # Верхняя и нижняя тонкие полосы
+    top_band = slide3.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(0.12))
+    top_band.fill.solid()
+    top_band.fill.fore_color.rgb = SUAI_PALETTE["DEEP_NAVY"]
+    top_band.line.fill.background()
+
+    bot_band = slide3.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(7.38), Inches(13.333), Inches(0.12))
+    bot_band.fill.solid()
+    bot_band.fill.fore_color.rgb = SUAI_PALETTE["BLUE"]
+    bot_band.line.fill.background()
+
+    # Центрированное акцентное кольцо и иконка
+    ring = slide3.shapes.add_shape(MSO_SHAPE.OVAL, Inches(5.86), Inches(1.10), Inches(1.60), Inches(1.60))
+    ring.fill.solid()
+    ring.fill.fore_color.rgb = SUAI_PALETTE["TAKEAWAY_BG"]
+    ring.line.color.rgb = SUAI_PALETTE["CYAN"]
+    ring.line.width = Pt(2.0)
+
+    icon_path = get_problem_icon_path("aggregation")
+    if icon_path and os.path.exists(icon_path):
+        slide3.shapes.add_picture(icon_path, Inches(5.96), Inches(1.20), width=Inches(1.40), height=Inches(1.40))
+
+    # Бейдж фокуса
+    b_pill = slide3.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(4.40), Inches(2.95), Inches(4.533), Inches(0.40))
+    b_pill.fill.solid()
+    b_pill.fill.fore_color.rgb = SUAI_PALETTE["RED"]
+    b_pill.line.fill.background()
+    tf_bp = b_pill.text_frame
+    p_bp = tf_bp.paragraphs[0]
+    p_bp.alignment = PP_ALIGN.CENTER
+    p_bp.text = "ТЕХНОЛОГИЧЕСКИЙ БАРЬЕР №1"
+    p_bp.font.name = "Arial"
+    p_bp.font.size = Pt(12)
+    p_bp.font.bold = True
+    p_bp.font.color.rgb = SUAI_PALETTE["WHITE"]
+
+    # Заголовок
+    tb_t = slide3.shapes.add_textbox(Inches(1.00), Inches(3.45), Inches(11.333), Inches(0.70))
+    tf_t = tb_t.text_frame
+    p_t = tf_t.paragraphs[0]
+    p_t.alignment = PP_ALIGN.CENTER
+    p_t.text = "Слипание и термодинамическая агрегация наночастиц"
+    p_t.font.name = "Arial"
+    p_t.font.size = Pt(26)
+    p_t.font.bold = True
+    p_t.font.color.rgb = SUAI_PALETTE["DEEP_NAVY"]
+
+    # Карточка тезиса
+    th_box = slide3.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.60), Inches(4.30), Inches(10.133), Inches(0.95))
+    th_box.fill.solid()
+    th_box.fill.fore_color.rgb = SUAI_PALETTE["CARD_BG"]
+    th_box.line.color.rgb = SUAI_PALETTE["BLUE"]
+    th_box.line.width = Pt(1.2)
+    tf_th = th_box.text_frame
+    tf_th.word_wrap = True
+    p_th = tf_th.paragraphs[0]
+    p_th.alignment = PP_ALIGN.CENTER
+    p_th.text = "Колоссальная удельная поверхность создает избыточную свободную энергию ΔGs = σ · S > 0, стремящуюся скоагулировать незащищенный золь в плотный осадок."
+    p_th.font.name = "Arial"
+    p_th.font.size = Pt(15)
+    p_th.font.bold = True
+    p_th.font.color.rgb = SUAI_PALETTE["DEEP_NAVY"]
+
+    # Нумерованные шаги дорожной карты
+    steps = [
+        "[01] Геометрия поверхности и термодинамика Гиббса",
+        "[02] Строение мицеллы и двойного слоя (ДЭС)",
+        "[03] Барьер Дерягина–Ландау–Фервея–Овербека (ДЛФО)"
+    ]
+    pill_w = 3.60
+    total_w = len(steps) * pill_w + (len(steps) - 1) * 0.25
+    start_px = (13.333 - total_w) / 2.0
+    for idx, st in enumerate(steps):
+        px = start_px + idx * (pill_w + 0.25)
+        p_pill = slide3.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(px), Inches(5.65), Inches(pill_w), Inches(0.48))
+        p_pill.fill.solid()
+        p_pill.fill.fore_color.rgb = SUAI_PALETTE["WHITE"]
+        p_pill.line.color.rgb = SUAI_PALETTE["CARD_BORDER"]
+        p_pill.line.width = Pt(1.0)
+        tf_p = p_pill.text_frame
+        p_p = tf_p.paragraphs[0]
+        p_p.alignment = PP_ALIGN.CENTER
+        p_p.text = st
+        p_p.font.name = "Arial"
+        p_p.font.size = Pt(11)
+        p_p.font.bold = True
+        p_p.font.color.rgb = SUAI_PALETTE["DEEP_NAVY"]
+
+    set_speaker_notes(slide3, "Вариация 2: Разделитель с акцентной карточкой тезиса и нумерованными шагами темы.")
+    slides.append(slide3)
+
+    return slides
+
+
+def add_variation_3_slides(prs: Presentation) -> List[Any]:
+    """
+    Вариация 3: «Премиальный глубокий темно-синий бренд ГУАП» (Deep Navy Hero)
+    - Слайд 1: Полноэкранный темный холст #002C5F, белый логотип, циановые акценты.
+    - Слайд 2: Контрастный проблемный слайд с акцентным темно-синим баннером и героическим визуалом.
+    - Слайд 3: Полноэкранный темный разделитель (Layout S Navy) с циановым кольцом и белым тезисом.
+    """
+    slides = []
+
+    # ---------------------------------------------------------
+    # Вариация 3: Слайд 1 (Deep Navy Hero Title)
+    # ---------------------------------------------------------
+    s1 = create_title_slide(
+        prs,
+        title="Термодинамика дисперсных систем и коллоидных растворов",
+        subtitle="Часть 2: Поверхностная энергия, двойной электрический слой (ДЭС) и устойчивость коллоидов",
+        course_info="КУРС «ФИЗИЧЕСКИЕ ОСНОВЫ НАНОТЕХНОЛОГИЙ» • 3 КУРС • ЛЕКЦИЯ №3",
+        teacher_info="Преподаватель: доцент Попов Д.А.",
+        dept_info="Кафедра №3 «Физики и нанотехнологий» ГУАП | Санкт-Петербург, 2026",
+        style="navy",
+        notes=(
+            "1. Вариация 3 (Deep Navy Hero): Полноэкранный темно-синий фон #002C5F обеспечивает "
+            "максимальный контраст и монументальный университетский статус на широкоформатных проекторах.\n"
+            "2. Реквизиты преподавателя и кафедры строго зафиксированы однократно на титуле."
+        )
+    )
+    slides.append(s1)
+
+    # ---------------------------------------------------------
+    # Вариация 3: Слайд 2 (Контрастный проблемный слайд)
+    # ---------------------------------------------------------
+    s2 = create_problem_intro_slide(
+        prs,
+        title="Шесть технологических барьеров нанодисперсных систем",
+        image_path=find_asset("fig_01_split_faraday_vs_fe3o4.png"),
+        image_caption="Золь золота Фарадея (1857 г.) vs Агрегат наночастиц Fe3O4 (сканирующая и просвечивающая ЭМ — СЭМ/ПЭМ)",
+        takeaway="Без электростатической или стерической защиты любая наносистема неизбежно разрушается.",
+        notes=(
+            "Вариация 3: Высококонтрастная подача технологических барьеров с глубоким темно-синим акцентом "
+            "в шапке и баннере вывода."
+        )
+    )
+    # Добавляем контрастную темно-синюю плашку вывода
+    for shp in s2.shapes:
+        if shp.has_text_frame and "[ВЫВОД]" in shp.text_frame.text:
+            shp.fill.solid()
+            shp.fill.fore_color.rgb = SUAI_PALETTE["DEEP_NAVY"]
+            shp.line.color.rgb = SUAI_PALETTE["CYAN"]
+            shp.line.width = Pt(1.5)
+            p = shp.text_frame.paragraphs[0]
+            p.font.color.rgb = SUAI_PALETTE["WHITE"]
+
+    slides.append(s2)
+
+    # ---------------------------------------------------------
+    # Вариация 3: Слайд 3 (Deep Navy Разделитель)
+    # ---------------------------------------------------------
+    s3 = create_section_divider_slide(
+        prs,
+        problem_id="aggregation",
+        title="Слипание и термодинамическая агрегация наночастиц",
+        subtitle="ТЕХНОЛОГИЧЕСКИЙ БАРЬЕР №1",
+        thesis="Колоссальная удельная поверхность создает избыточную свободную энергию ΔGs = σ · S > 0, стремящуюся скоагулировать незащищенный золь в плотный осадок.",
+        roadmap_steps=[
+            "1. Геометрия поверхности и термодинамика Гиббса",
+            "2. Строение мицеллы и двойной электрический слой (ДЭС)",
+            "3. Барьер Дерягина–Ландау–Фервея–Овербека (ДЛФО)"
+        ],
+        style="navy",
+        notes=(
+            "Вариация 3: Темный разделитель раздела служит мощным когнитивным переключателем внимания "
+            "в потоковой лекции, подготавливая студентов к глубокому физико-математическому анализу."
+        )
+    )
+    slides.append(s3)
+
+    return slides
+
+
+# ==============================================================================
+# 3. Спецификация основных теоретических слайдов Лекции №3 (Слайды 4–17)
+# ==============================================================================
+
+CORE_SLIDES_SPEC = [
     # -------------------------------------------------------------------------
-    # Слайд 2
+    # Слайд 4 (в нумерации лекции: Слайд 4)
     # -------------------------------------------------------------------------
     {
-        "num": 2,
+        "num": 4,
         "layout": "A",
         "title": "Удельная поверхность S_уд ∝ 1/a — главный геометрический драйвер наносистем",
         "subtitle": "Блок 1. Классификация и количественные параметры дисперсных систем",
@@ -218,10 +716,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 3
+    # Слайд 5
     # -------------------------------------------------------------------------
     {
-        "num": 3,
+        "num": 5,
         "layout": "A",
         "title": "Классификация дисперсных систем: размер, агрегатное состояние и лиофильность",
         "subtitle": "Блок 1. Систематика коллоидных и нанодисперсных материалов",
@@ -239,7 +737,7 @@ SLIDES_SPEC = [
                 "heading": "2. Лиофильные vs Лиофобные системы (критерий Ребиндера)",
                 "height": 2.50,
                 "bullets": [
-                    "Лиофильные (ПАВ, растворы биополимеров): σ ≈ 0, термодинамически устойчивы (ΔG_обр < 0).",
+                    "Лиофильные (поверхностно-активные вещества (ПАВ), биополимеры): σ ≈ 0, термодинамически устойчивы (ΔG_обр < 0).",
                     "Лиофобные нанозоли (Au, Ag, Fe(OH)₃): высокое натяжение σ ≫ 0, термодинамически нестабильны:",
                     "  [Ф] ΔG_обр = σ · S > 0   (существуют исключительно благодаря ДЭС)"
                 ]
@@ -255,10 +753,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 4
+    # Слайд 6
     # -------------------------------------------------------------------------
     {
-        "num": 4,
+        "num": 6,
         "layout": "B",
         "title": "От золя к гелю, ксерогелю и аэрогелю: эволюция связности наносистемы",
         "subtitle": "Блок 1. Золь-гель переход и капиллярная инженерия нанопористых материалов",
@@ -290,10 +788,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 5
+    # Слайд 7
     # -------------------------------------------------------------------------
     {
-        "num": 5,
+        "num": 7,
         "layout": "A",
         "title": "Цеолиты — регулярные микропористые кристаллы и молекулярные сита",
         "subtitle": "Блок 1. Кристаллические связнодисперсные системы с калиброванными наноканалами",
@@ -327,16 +825,16 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 6
+    # Слайд 8
     # -------------------------------------------------------------------------
     {
-        "num": 6,
+        "num": 8,
         "layout": "A",
         "title": "Строение коллоидной мицеллы и правило Панета–Фаянса–Пескова",
         "subtitle": "Блок 2. Строение мицеллы неорганических веществ и двойной электрический слой",
         "cards": [
             {
-                "heading": "1. Правило Панета–Фаянса («Кто заряжает ядро?»)",
+                "heading": "1. Правило Панета–Фаянса: селективный заряд ядра",
                 "height": 2.25,
                 "bullets": [
                     "Кристаллическое ядро избирательно адсорбирует из раствора только «РОДНЫЕ» ионы (потенциалопределяющие ионы — ПОИ):",
@@ -351,7 +849,7 @@ SLIDES_SPEC = [
                 "bullets": [
                     "Шаг 1 (Агрегат): нерастворимое кристаллическое ядро [M]_m (заряд 0).",
                     "Шаг 2 (Ядро): сажаем n родных ионов из избытка → [M]_m · n ПОИ⁺.",
-                    "Шаг 3 (Гранула): добавляем (n−x) противоионов плотного слоя в скобки { ... }^(x+) — гранула ЗАРЯЖЕНА!",
+                    "Шаг 3 (Гранула): добавляем (n−x) противоионов (ПИ) плотного слоя в скобки { ... }^(x+) — гранула ЗАРЯЖЕНА!",
                     "Шаг 4 (Мицелла): пишем x противоионов диффузного слоя за скобкой:",
                     "  [Ф] { [M]_m · n ПОИ⁺ · (n − x) ПИ⁻ }^(x+) · x ПИ⁻   (заряд = 0!)"
                 ]
@@ -366,10 +864,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 7
+    # Слайд 9
     # -------------------------------------------------------------------------
     {
-        "num": 7,
+        "num": 9,
         "layout": "A",
         "title": "Формулы мицелл: перезарядка золя AgI и гидрозоль Fe(OH)₃",
         "subtitle": "Блок 2. Практика составления мицеллярных формул неорганических гидрозолей",
@@ -406,10 +904,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 8
+    # Слайд 10
     # -------------------------------------------------------------------------
     {
-        "num": 8,
+        "num": 10,
         "layout": "A",
         "title": "Физические модели ДЭС: от конденсатора Гельмгольца к теории Гуи–Чепмена",
         "subtitle": "Блок 2. Эволюция представлений о строении двойного электрического слоя",
@@ -444,10 +942,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 9
+    # Слайд 11
     # -------------------------------------------------------------------------
     {
-        "num": 9,
+        "num": 11,
         "layout": "A",
         "title": "Закон спада потенциала и дебаевская толщина ДЭС λ_D = κ⁻¹",
         "subtitle": "Блок 2. Как концентрация и заряд соли сжимают защитную ионную «шубу»",
@@ -480,10 +978,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 10
+    # Слайд 12
     # -------------------------------------------------------------------------
     {
-        "num": 10,
+        "num": 12,
         "layout": "A",
         "title": "Объединенная модель ДЭС О. Штерна (1924): плотный и диффузный слои",
         "subtitle": "Блок 2. Современная физическая теория двойного электрического слоя",
@@ -518,10 +1016,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 11
+    # Слайд 13
     # -------------------------------------------------------------------------
     {
-        "num": 11,
+        "num": 13,
         "layout": "A",
         "title": "Плоскость скольжения и электрокинетический дзета-потенциал (ζ)",
         "subtitle": "Блок 3. Дзета-потенциал и диагностика стабильности наноколлоидов (Навык №2)",
@@ -556,10 +1054,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 12
+    # Слайд 14
     # -------------------------------------------------------------------------
     {
-        "num": 12,
+        "num": 14,
         "layout": "A",
         "title": "Четыре электрокинетических явления: связь движения и электрического поля",
         "subtitle": "Блок 3. Открытие Ф.Ф. Рейсса (1809) и нанотехнологические применения",
@@ -593,10 +1091,10 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 13
+    # Слайд 15
     # -------------------------------------------------------------------------
     {
-        "num": 13,
+        "num": 15,
         "layout": "A",
         "title": "Как из скорости электрофореза найти ζ-потенциал: роль размера κr",
         "subtitle": "Блок 3. Влияние отношения радиуса наночастицы к толщине ионной шубы (κr = r / λ_D)",
@@ -611,7 +1109,7 @@ SLIDES_SPEC = [
                 ]
             },
             {
-                "heading": "2. Почему для наночастиц важна поправка Генри?",
+                "heading": "2. Переходная размерная область теории Генри (κr ~ 1–5)",
                 "height": 2.55,
                 "bullets": [
                     "Малая частица в толстой шубе (r ≪ λ_D, предел Хюккеля): f = 1.0.",
@@ -629,13 +1127,13 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 14
+    # Слайд 16
     # -------------------------------------------------------------------------
     {
-        "num": 14,
+        "num": 16,
         "layout": "A",
         "title": "Седиментационная устойчивость и закон Лапласа–Перрена",
-        "subtitle": "Блок 4. Почему тяжелые наночастицы золота (ρ = 19.3 г/см³) не падают на дно?",
+        "subtitle": "Блок 4. Баланс броуновской диффузии и гравитационного оседания Стокса (r ≤ 10 нм)",
         "cards": [
             {
                 "heading": "1. Два вида устойчивости коллоидов (Н.П. Песков)",
@@ -667,137 +1165,451 @@ SLIDES_SPEC = [
         )
     },
     # -------------------------------------------------------------------------
-    # Слайд 15
-    # -------------------------------------------------------------------------
-    {
-        "num": 15,
-        "layout": "A",
-        "title": "Агрегативная устойчивость и теория ДЛФО (Дерягин–Ландау–Фервей–Овербек)",
-        "subtitle": "Блок 4. Борьба ван-дер-ваальсова притяжения и электростатического отталкивания",
-        "cards": [
-            {
-                "heading": "1. Сумма двух сил при сближении наночастиц: U(h) = U_A + U_R",
-                "height": 2.45,
-                "bullets": [
-                    "1) Притяжение Ван-дер-Ваальса (действует всегда, степенной закон):",
-                    "  [Ф] U_A(h) = − (A_H · r) / (12 · h)  ∝  − 1 / h",
-                    "2) Отталкивание при перекрытии ионных шуб ДЭС (экспонента):",
-                    "  [Ф] U_R(h)  ∝  r · φ_δ² · exp( −h / λ_D )"
-                ]
-            },
-            {
-                "heading": "2. Три главные точки на кривой ДЛФО",
-                "height": 2.45,
-                "bullets": [
-                    "Ближний (первичный) минимум (h → 0): глубокая яма — необратимое слипание (коагуляция).",
-                    "Потенциальный барьер U_max: «забор» устойчивости. Чтобы золь жил долго, барьер должен быть выше тепловых ударов:",
-                    "  [Ф] U_max ≥ 15 – 25 k_B T     (соответствует |ζ| > 30 мВ)",
-                    "Дальний (вторичный) минимум: слабая обратимая сцепка через воду."
-                ]
-            }
-        ],
-        "fig": "fig_15_dlvo_potential.png",
-        "fig_desc": "Эталонная потенциальная кривая ДЛФО с первичным минимумом, барьером U_max и вторичным минимумом",
-        "takeaway": "Различие законов спадания с расстоянием (степенной −1/h для притяжения и экспоненциальный e^(−κh) для отталкивания) рождает барьер U_max и два минимума!",
-        "notes": (
-            "1. Яркая аналогия (куртки с липучками внутри надувных шаров для зорбинга): Представьте двух человек в куртках с мощными липучками-велкро (это притяжение Ван-дер-Ваальса −1/h на малых расстояниях). Если они столкнутся вплотную — слипнутся намертво (ближний минимум). Но поверх курток надеты упругие надувные шары (ионные шубы ДЭС, отталкивание U_R). Пока шары надуты (высокий барьер U_max = 29.9 k_B T), люди при столкновении просто упруго отскакивают друг от друга!\n"
-            "2. Что делает соль: Соль выпускает воздух из надувных шаров — барьер падает, и липучки захлопываются."
-        )
-    },
-    # -------------------------------------------------------------------------
-    # Слайд 16
-    # -------------------------------------------------------------------------
-    {
-        "num": 16,
-        "layout": "A",
-        "title": "Коагуляция электролитами: правило Шульце–Гарди и закон шестой степени (z⁻⁶)",
-        "subtitle": "Блок 4. Порог коагуляции γ_кр и методика решения задач на коагуляцию (Навык №3)",
-        "cards": [
-            {
-                "heading": "1. Порог коагуляции γ_кр и закон Дерягина–Ландау",
-                "height": 2.35,
-                "bullets": [
-                    "Порог коагуляции γ_кр (ммоль/л) — минимальная концентрация соли, обнуляющая барьер ДЛФО (U_max = 0, кривая 3 касается оси).",
-                    "Коагулирует ПРОТИВОИОН (знак, противоположный грануле!), а порог обратно пропорционален ШЕСТОЙ степени его заряда z:",
-                    "  [Ф] γ_кр  ∝  1 / z⁶   ⇒   γ₁ : γ₂ : γ₃ = 1 : 1/64 : 1/729"
-                ]
-            },
-            {
-                "heading": "2. Алгоритм и ловушки в задачах на коагуляцию (золь Fe(OH)₃)",
-                "height": 2.55,
-                "bullets": [
-                    "Ловушка 1: В солях KCl, K₂SO₄, K₃[Fe(CN)₆] катион K⁺ НЕ работает (у гранулы Fe(OH)₃ заряд «+»)! Коагулируют анионы: Cl⁻ (z=1), SO₄²⁻ (z=2), [Fe(CN)₆]³⁻ (z=3).",
-                    "Ловушка 2: В знаменателе формулы порога — ПОЛНЫЙ объем смеси:",
-                    "  [Ф] γ_кр = [ C_эл · V_эл / (V_золя + V_эл) ] · 1000   [ммоль/л]"
-                ]
-            }
-        ],
-        "fig": "fig_16_schultze_hardy_coagulation.png",
-        "fig_desc": "Семейство кривых ДЛФО при росте концентрации электролита и гистограмма закона z^-6",
-        "takeaway": "Закон шестой степени Дерягина–Ландау (γ_кр ∝ z⁻⁶) объясняет, почему трехзарядный анион [Fe(CN)₆]³⁻ коагулирует золь Fe(OH)₃ в ~730 раз эффективнее однозарядного Cl⁻!",
-        "notes": (
-            "1. Магия шестой степени (1 : 1/64 : 1/729): Возводим заряд аниона z = 1, 2, 3 в шестую степень: 1⁶ = 1, 2⁶ = 64, 3⁶ = 729! Трехзарядной красной кровяной соли нужно в 729 раз меньше, чем KCl!\n"
-            "2. Две главные ловушки в расчетных задачах: (1) Почему везде калий K⁺? Чтобы доказать, что одноименный ион не влияет, а работают только анионы-противоионы! (2) Не забывайте прибавлять V_эл к V_золя в знаменателе при расчете γ_кр."
-        )
-    },
-    # -------------------------------------------------------------------------
-    # Слайд 17
+    # Слайд 17 (Технологическое применение: очищено от упоминаний ЛР)
     # -------------------------------------------------------------------------
     {
         "num": 17,
         "layout": "A",
-        "title": "Сквозной синтез: две модельные наносистемы лекции",
-        "subtitle": "Резюме темы «Термодинамика дисперсных систем и коллоидных растворов»",
+        "title": "Технологическое применение: коллоидная диагностика и промышленный синтез",
+        "subtitle": "Сквозное резюме темы «Термодинамика дисперсных систем и коллоидных растворов»",
         "cards": [
             {
-                "heading": "Модельная система №1: Рубиновый золь золота",
-                "height": 2.40,
+                "heading": "Прикладной модуль №1: Диагностика нанозолей (Au)",
+                "height": 2.45,
                 "bullets": [
-                    "Цитратный синтез (метод Туркевича): восстановление HAuCl₄ цитратом натрия (100 °C) с получением наночастиц Au (d ≈ 15–20 нм).",
-                    "Строение мицеллы: {[Au]_m · n Cit³⁻ · (3n−x) Na⁺}ˣ⁻ · x Na⁺; гранула заряжена отрицательно, ζ ≈ −40 мВ.",
-                    "Устойчивость и плазмон: седиментационная стабильность по Перрену; рубиновый цвет (520 нм) при коагуляции солями сменяется синим (650 нм)."
+                    "Цитратный синтез и плазмонный резонанс: монодисперсные наночастицы Au (d ≈ 15–20 нм) стабилизированы адсорбцией цитрат-ионов.",
+                    "Электрокинетический мониторинг: дзета-потенциал (ζ ≈ −40 мВ) формирует защитный барьер; сжатие ДЭС электролитом вызывает оптический сдвиг 520 → 650 нм.",
+                    "Диагностические методы: измерение подвижности в электрофорезе и динамическое рассеяние света (ДРС) для контроля агрегации."
                 ]
             },
             {
-                "heading": "Модельная система №2: Гидрозоль Fe(OH)₃",
+                "heading": "Прикладной модуль №2: Промышленный синтез (Fe(OH)₃)",
                 "height": 2.50,
                 "bullets": [
-                    "Конденсационный гидролиз FeCl₃: кипячение соли в воде формирует гидрозоль со стабилизатором FeOCl (ПОИ — катион FeO⁺).",
-                    "Строение мицеллы: {[Fe(OH)₃]_m · n FeO⁺ · (n−x) Cl⁻}ˣ⁺ · x Cl⁻; гранула заряжена положительно.",
-                    "Коагуляция по Шульце–Гарди: коагулируют анионы-противоионы; пороги коагуляции Cl⁻, SO₄²⁻, [Fe(CN)₆]³⁻ подчиняются закону z⁻⁶ (1 : 1/64 : 1/729)."
+                    "Конденсационный гидролиз прекурсоров: синтез золя Fe(OH)₃ со стабилизатором FeOCl (катионы FeO⁺ сообщают грануле положительный заряд).",
+                    "Технологический барьер коагуляции: нейтрализация заряда гранулы анионами по закону шестой степени Дерягина–Ландау (правило Шульце–Гарди: 1 : 1/64 : 1/729).",
+                    "Промышленное применение: прецизионный коагуляционный контроль в водоочистке, мембранной сепарации и производстве нанокомпозитов."
                 ]
             }
         ],
-        "fig": "fig_17_labs_connection.png",
-        "fig_desc": "Сводная инфографика применения теории Лекции №3 к гидрозолям Au и Fe(OH)3",
-        "takeaway": "Модельные наносистемы наглядно объединяют фундаментальную теорию ДЭС и ДЛФО: от оптической плазмонной стабильности нанозоля золота до закона шестой степени при коагуляции гидрозоля Fe(OH)₃.",
+        "fig": "fig_17_colloid_applications.png",
+        "fig_desc": "Сводная инфографика прикладных модулей коллоидной диагностики и промышленного синтеза наносистем",
+        "takeaway": "Коллоидная диагностика и промышленный синтез опираются на фундаментальные законы ДЭС и теории ДЛФО: от плазмонной стабильности золота до коагуляционного барьера z⁻⁶.",
         "notes": (
-            "1. Модельная система №1 (золь золота): Синтез по методу Туркевича дает отрицательно заряженную гранулу со стабилизатором цитратом натрия (ζ ≈ -40 мВ). Высокий электростатический барьер обеспечивает долговременную стабильность. При добавлении электролита сжатие ДЭС вызывает агрегацию и сдвиг плазмонного резонанса 520 -> 650 нм (раствор синеет).\n"
-            "2. Модельная система №2 (гидрозоль Fe(OH)₃): Конденсационный синтез дает положительно заряженную гранулу с ПОИ FeO⁺. Коагуляция вызывается анионами-противоионами, а пороги коагуляции строго следуют закону шестой степени Дерягина–Ландау (1 : 1/64 : 1/729 для z = 1, 2, 3).\n"
-            "3. Переход к следующей лекции: В Лекции №4 мы перейдем к термодинамике адсорбции на твердых поверхностях (изотермы Ленгмюра и БЭТ), краевому углу смачивания и атомным механизмам роста тонких пленок."
+            "1. Прикладной модуль №1 (коллоидная диагностика): Синтез золя золота по методу Туркевича дает отрицательно заряженную гранулу (ζ ≈ −40 мВ). Высокий электростатический барьер обеспечивает устойчивость. При добавлении солей сжатие ДЭС вызывает агрегацию и спектральный сдвиг плазмонного пика 520 → 650 нм (золь синеет).\n"
+            "2. Прикладной модуль №2 (промышленный контроль коагуляции): Синтез гидрозоля Fe(OH)₃ формирует положительно заряженную гранулу с ПОИ FeO⁺. Коагуляция инициируется анионами-противоионами, а пороги коагуляции подчиняются закону шестой степени Дерягина–Ландау (1 : 1/64 : 1/729 для z = 1, 2, 3).\n"
+            "3. Анонс Лекции №4: В следующей лекции мы перейдем к термодинамике адсорбции на твердых поверхностях (изотермы Ленгмюра и БЭТ), краевому углу смачивания и атомным механизмам роста тонких пленок."
         )
     }
 ]
 
 
-def build_deck(output_path: str, use_placeholders_only: bool = False):
+# ==============================================================================
+# 4. Сборщик презентации сравнительных вариаций (14 слайдов)
+# ==============================================================================
+
+def build_comparative_deck(output_path: str = OUT_VARIATIONS_PPTX):
+    """
+    Формирует сравнительную презентацию lecture_03_comparative_variations.pptx:
+    - Слайд 1: Титульный лист сравнительного обзора
+    - Слайды 2–4: Вариация 1 (Classic SUAI Corporate: Титул, Проблемы, Разделитель)
+    - Слайды 5–7: Вариация 2 (Modern Scientific Infographic: Титул, Проблемы, Разделитель)
+    - Слайды 8–10: Вариация 3 (Deep Navy Hero: Титул, Проблемы, Разделитель)
+    - Слайд 11: Сравнительная матрица Слайда 1 (Титульные листы T1 vs T2 vs T3)
+    - Слайд 12: Сравнительная матрица Слайда 2 (Проблемный вводный P1 vs P2 vs P3)
+    - Слайд 13: Сравнительная матрица Слайда 3 (Разделитель первой проблемы S1 vs S2 vs S3)
+    - Слайд 14: Итоговая матрица рекомендаций и стандарты курса ГУАП
+    """
     prs = create_base_presentation()
+
+    # Слайд 1: Титульный лист сравнительного деки
+    create_title_slide(
+        prs,
+        title="Сравнительный анализ дизайн-вариаций оформления первых трех слайдов",
+        subtitle="Курс «Физические основы нанотехнологий» • Лекция №3 • ГУАП",
+        course_info="СРАВНИТЕЛЬНАЯ ЭКСПЕРТИЗА МАКЕТОВ • СЕМЕСТР 4 • ВЕХА M4",
+        teacher_info="Разработчик курса: доцент Попов Д.А.",
+        dept_info="Кафедра №3 «Физики и нанотехнологий» ГУАП | Санкт-Петербург, 2026",
+        style="classic",
+        notes="Презентация предназначена для экспертного сопоставления трех альтернативных стилистических вариаций первых трех слайдов Лекции №3."
+    )
+
+    # Добавляем последовательно 3 вариации по 3 слайда (Слайды 2–10)
+    add_variation_1_slides(prs)
+    add_variation_2_slides(prs)
+    add_variation_3_slides(prs)
+
+    # ---------------------------------------------------------
+    # Слайд 11: Сравнительная матрица для Слайда 1 (Титул)
+    # ---------------------------------------------------------
+    create_comparative_matrix_slide(
+        prs,
+        title="Сравнительный анализ: Слайд 1 (Титульный лист университета)",
+        subtitle="Сопоставление вариаций T1 (Classic), T2 (Modern Infographic) и T3 (Deep Navy Hero)",
+        variations=[
+            {
+                "name": "Вариант T1: Classic SUAI",
+                "preview_path": get_variation_preview_path("slide_02_preview.png"),
+                "badge": "Корпоративный стандарт",
+                "badge_color": SUAI_PALETTE["BLUE"],
+                "criteria": [
+                    "Бренд ГУАП: белый фон, оригинальный логотип",
+                    "Типографика: строгий Arial Bold, иерархия Navy",
+                    "Реквизиты: лектор, кафедра и курс указаны строго 1 раз",
+                    "Эргономика: оптимально для светлых аудиторий",
+                ],
+            },
+            {
+                "name": "Вариант T2: Modern Infographic",
+                "preview_path": get_variation_preview_path("slide_05_preview.png"),
+                "badge": "Инженерный модуль",
+                "badge_color": SUAI_PALETTE["GREEN"],
+                "criteria": [
+                    "Бренд ГУАП: контейнерная плашка #F4F7FA",
+                    "Инфографика: акцентные бейджи курса и статуса",
+                    "Реквизиты: выделенная карточка лектора",
+                    "Эргономика: высокий визуальный интерес студентов",
+                ],
+            },
+            {
+                "name": "Вариант T3: Deep Navy Hero",
+                "preview_path": get_variation_preview_path("slide_08_preview.png"),
+                "badge": "Премиальный темный",
+                "badge_color": SUAI_PALETTE["DEEP_NAVY"],
+                "criteria": [
+                    "Бренд ГУАП: глубокий Navy #002C5F, белый логотип",
+                    "Контраст: циановые акценты #00BEF3 на темном",
+                    "Реквизиты: контрастное серебряное начертание",
+                    "Эргономика: максимальная видимость в поточных залах",
+                ],
+            },
+        ],
+        takeaway="Все 3 вариации строго соблюдают правило Single-Point Occurrence и брендбук ГУАП.",
+        notes="Сравнение показывает, что вариант T1 обеспечивает максимальную академическую строгость, а T3 — наивысший контраст."
+    )
+
+    # ---------------------------------------------------------
+    # Слайд 12: Сравнительная матрица для Слайда 2 (Проблемы)
+    # ---------------------------------------------------------
+    create_comparative_matrix_slide(
+        prs,
+        title="Сравнительный анализ: Слайд 2 (Шесть технологических барьеров)",
+        subtitle="Сопоставление подходов к сетке 2x3 карточек, иконкам и аутентичному визуалу",
+        variations=[
+            {
+                "name": "Вариант P1: Classic Grid",
+                "preview_path": get_variation_preview_path("slide_03_preview.png"),
+                "badge": "Равномерная сетка",
+                "badge_color": SUAI_PALETTE["BLUE"],
+                "criteria": [
+                    "Карточки: единые плашки #F4F7FA с тонкими рамками",
+                    "Иконки: 6 круглых 300 DPI маркеров проблем",
+                    "Визуал: 16:9 сплит Faraday vs Fe3O4 справа",
+                    "Лаконичность: 2-3 фразы, отсутствие Q&A формата",
+                ],
+            },
+            {
+                "name": "Вариант P2: Badge Infographic",
+                "preview_path": get_variation_preview_path("slide_06_preview.png"),
+                "badge": "Цветовое кодирование",
+                "badge_color": SUAI_PALETTE["ORANGE"],
+                "criteria": [
+                    "Карточки: верхний цветной бейдж категории",
+                    "Иконки: контрастный акцент на ключевой формуле",
+                    "Визуал: академический оверлей верификации",
+                    "Лаконичность: структурированная инженерная подача",
+                ],
+            },
+            {
+                "name": "Вариант P3: High-Contrast Hero",
+                "preview_path": get_variation_preview_path("slide_09_preview.png"),
+                "badge": "Высокий контраст",
+                "badge_color": SUAI_PALETTE["DEEP_NAVY"],
+                "criteria": [
+                    "Карточки: Navy заголовки, четкий фокус на ΔGs",
+                    "Иконки: глубокий темный баннер вывода",
+                    "Визуал: акцент на парадоксе Фарадей/Fe3O4",
+                    "Лаконичность: максимальная разгрузка от текста",
+                ],
+            },
+        ],
+        takeaway="Каждая вариация полностью исключает риторические вопросы и опирается на реальные научные данные.",
+        notes="Вариация P2 дает максимальную скорость считывания формул благодаря индивидуальным цветным бейджам."
+    )
+
+    # ---------------------------------------------------------
+    # Слайд 13: Сравнительная матрица для Слайда 3 (Разделитель)
+    # ---------------------------------------------------------
+    create_comparative_matrix_slide(
+        prs,
+        title="Сравнительный анализ: Слайд 3 (Открытие первой проблемы: Агрегация)",
+        subtitle="Сопоставление центрированных макетов Layout S по фокусировке внимания",
+        variations=[
+            {
+                "name": "Вариант S1: Classic Light",
+                "preview_path": get_variation_preview_path("slide_04_preview.png"),
+                "badge": "Светлый центрированный",
+                "badge_color": SUAI_PALETTE["BLUE"],
+                "criteria": [
+                    "Иконка: крупный маркер 1.4x1.4 дюйма по центру",
+                    "Тезис: строго 1–2 предложения (Бритва Оккама)",
+                    "Дорожная карта: 3 светлых навигационных пилла",
+                    "Эргономика: естественный переход от белых слайдов",
+                ],
+            },
+            {
+                "name": "Вариант S2: Modern Infographic",
+                "preview_path": get_variation_preview_path("slide_07_preview.png"),
+                "badge": "Акцентная плашка",
+                "badge_color": SUAI_PALETTE["CYAN"],
+                "criteria": [
+                    "Иконка: двойное кольцо с циановым контуром",
+                    "Тезис: выделенная контурная плашка в центре",
+                    "Дорожная карта: нумерованные блоки [01]..[03]",
+                    "Эргономика: динамичная инженерная визуализация",
+                ],
+            },
+            {
+                "name": "Вариант S3: Deep Navy Anchor",
+                "preview_path": get_variation_preview_path("slide_10_preview.png"),
+                "badge": "Темный когнитивный якорь",
+                "badge_color": SUAI_PALETTE["DEEP_NAVY"],
+                "criteria": [
+                    "Иконка: светящийся циановый обод на Navy фоне",
+                    "Тезис: чистый белый и светло-циановый текст",
+                    "Дорожная карта: темные пиллы с яркими рамками",
+                    "Эргономика: 100% переключение внимания аудитории",
+                ],
+            },
+        ],
+        takeaway="Слайд-разделитель Layout S задает монументальный ритм лекции и предотвращает рассеивание внимания.",
+        notes="Темный вариант S3 идеален при переходе к сложным теоретическим разделам (ДЛФО, ДЭС)."
+    )
+
+    # ---------------------------------------------------------
+    # Слайд 14: Итоговая сводная матрица рекомендаций курса
+    # ---------------------------------------------------------
+    slide14 = prs.slides.add_slide(prs.slide_layouts[6])
+    add_suai_header(
+        slide14,
+        "Итоговая матрица соответствия стандартам и рекомендации для курса ГУАП",
+        "Комплексная оценка вариаций по требованиям R1–R5 и условиям лекционных аудиторий"
+    )
+
+    col_w = 3.85
+    start_x = 0.60
+    gap = 0.29
+    top_y = 1.35
+    card_h = 5.05
+
+    rec_data = [
+        {
+            "title": "Рекомендация: Базовый лекционный поток",
+            "choice": "Вариация 1 (Classic SUAI)",
+            "score": "Соответствие: 100% (R1–R5)",
+            "color": SUAI_PALETTE["BLUE"],
+            "points": [
+                "Идеально для аудиторий с естественным светом (31-04а)",
+                "Максимальная академическая строгость по ГОСТ",
+                "Официальный векторный логотип ГУАП на белом фоне",
+                "Гармонично сочетается со всеми 14 теоретическими слайдами",
+                "Рекомендован как основной стандарт по умолчанию"
+            ]
+        },
+        {
+            "title": "Рекомендация: Инженерные практикумы",
+            "choice": "Вариация 2 (Modern Infographic)",
+            "score": "Соответствие: 100% (R1–R5)",
+            "color": SUAI_PALETTE["GREEN"],
+            "points": [
+                "Цветные бейджи мгновенно разделяют 6 проблем",
+                "Оптимально для семинаров и разбора задач на коагуляцию",
+                "Высокая наглядность связки «проблема → формула»",
+                "Усиленный акцент на прикладных модулях наноинженерии",
+                "Рекомендован для междисциплинарных модулей"
+            ]
+        },
+        {
+            "title": "Рекомендация: Потоковые аудитории и конференции",
+            "choice": "Вариация 3 (Deep Navy Hero)",
+            "score": "Соответствие: 100% (R1–R5)",
+            "color": SUAI_PALETTE["DEEP_NAVY"],
+            "points": [
+                "Максимальный проекционный контраст на больших экранах",
+                "Слайд-разделитель служит мощным якорем внимания",
+                "Премиальный университетский статус дисциплины",
+                "Отличная читаемость белого текста с задних рядов",
+                "Рекомендован для титула и ключевых узловых слайдов"
+            ]
+        }
+    ]
+
+    for idx, r in enumerate(rec_data):
+        cx = start_x + idx * (col_w + gap)
+        card = slide14.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE, Inches(cx), Inches(top_y), Inches(col_w), Inches(card_h)
+        )
+        card.fill.solid()
+        card.fill.fore_color.rgb = SUAI_PALETTE["CARD_BG"]
+        card.line.color.rgb = r["color"]
+        card.line.width = Pt(1.5)
+
+        tf = card.text_frame
+        tf.word_wrap = True
+        tf.margin_left = Inches(0.18)
+        tf.margin_right = Inches(0.18)
+        tf.margin_top = Inches(0.16)
+
+        p0 = tf.paragraphs[0]
+        p0.text = r["title"]
+        p0.font.name = "Arial"
+        p0.font.size = Pt(11)
+        p0.font.bold = True
+        p0.font.color.rgb = SUAI_PALETTE["MUTED_STEEL"]
+
+        p1 = tf.add_paragraph()
+        p1.text = r["choice"]
+        p1.font.name = "Arial"
+        p1.font.size = Pt(14)
+        p1.font.bold = True
+        p1.font.color.rgb = r["color"]
+        p1.space_before = Pt(4)
+
+        p2 = tf.add_paragraph()
+        p2.text = r["score"]
+        p2.font.name = "Arial"
+        p2.font.size = Pt(10.5)
+        p2.font.bold = True
+        p2.font.color.rgb = SUAI_PALETTE["CHARCOAL"]
+        p2.space_before = Pt(3)
+        p2.space_after = Pt(8)
+
+        for pt in r["points"]:
+            p = tf.add_paragraph()
+            p.text = f"✓ {pt}"
+            p.font.name = "Arial"
+            p.font.size = Pt(10.5)
+            p.font.color.rgb = SUAI_PALETTE["CHARCOAL"]
+            p.space_after = Pt(4)
+
+    add_takeaway_banner(
+        slide14,
+        "ИТОГ: Вариация 1 интегрирована в основной дек курса; все 3 вариации доступны в сравнительной презентации."
+    )
+    set_speaker_notes(
+        slide14,
+        "Сводная рекомендация подтверждает полную валидацию всех требований технического задания R1–R5."
+    )
+
+    highlight_r3_abbreviations_in_deck(prs)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    prs.save(output_path)
+    print(f"[SUCCESS] Сравнительная презентация успешно собрана: {output_path} ({len(prs.slides)} слайдов)")
+    return prs
+
+
+def highlight_r3_abbreviations_in_deck(prs: Presentation):
+    """
+    Автоматически выделяет полужирным шрифтом и фирменным цветом ГУАП
+    ключевые терминологические аббревиатуры R3 в текстовых блоках слайдов.
+    """
+    import re
+    r3_terms = [
+        "ДЭС", "ДЛФО", "ПАВ", "ПОИ", "ПИ", "ККМ", "ИЭТ", "ПЭГ", "ПВП",
+        "СЭМ", "ПЭМ", "АСМ", "ЛПР", "КТ", "ЭФО", "ДРС", "ЭЛС"
+    ]
+    pattern = re.compile(r"(\b(?:" + "|".join(r3_terms) + r")\b)")
+
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if not shape.has_text_frame:
+                continue
+            for p in shape.text_frame.paragraphs:
+                full_text = p.text
+                if not pattern.search(full_text):
+                    continue
+                # Считываем базовые параметры шрифта из параграфа или первого run
+                fname = p.font.name or (p.runs[0].font.name if p.runs else "Arial") or "Arial"
+                fsize = p.font.size or (p.runs[0].font.size if p.runs else Pt(11.4)) or Pt(11.4)
+                fbold = p.font.bold if p.font.bold is not None else (p.runs[0].font.bold if p.runs else False)
+                fitalic = p.font.italic if p.font.italic is not None else (p.runs[0].font.italic if p.runs else False)
+                fcolor = None
+                try:
+                    if p.font.color and p.font.color.type is not None:
+                        fcolor = p.font.color.rgb
+                except Exception:
+                    pass
+                if fcolor is None and p.runs:
+                    try:
+                        if p.runs[0].font.color and p.runs[0].font.color.type is not None:
+                            fcolor = p.runs[0].font.color.rgb
+                    except Exception:
+                        pass
+                if fcolor is None:
+                    fcolor = SUAI_PALETTE["CHARCOAL"]
+
+                parts = pattern.split(full_text)
+                p.text = ""
+                for part in parts:
+                    if not part:
+                        continue
+                    r = p.add_run()
+                    r.text = part
+                    r.font.name = fname
+                    r.font.size = fsize
+                    r.font.italic = fitalic
+                    if pattern.fullmatch(part):
+                        r.font.bold = True
+                        if fcolor in (SUAI_PALETTE["CHARCOAL"], SUAI_PALETTE["MUTED_STEEL"]):
+                            r.font.color.rgb = SUAI_PALETTE["BLUE"]
+                        else:
+                            r.font.color.rgb = fcolor
+                    else:
+                        r.font.bold = fbold
+                        r.font.color.rgb = fcolor
+
+
+# ==============================================================================
+# 5. Сборщик основной презентации курса lecture_03_colloids.pptx (17 слайдов)
+# ==============================================================================
+
+def build_lecture_03_deck(output_path: str = OUT_MAIN_PPTX, primary_variation: int = 1,
+                          use_placeholders_only: bool = False):
+    """
+    Формирует полную академическую презентацию Лекции №3 (17 слайдов):
+    - Слайды 1–3: выбранная основная вариация (по умолчанию Вариация 1: Classic SUAI Corporate).
+    - Слайды 4–16: основные теоретические слайды курса (без дублирования реквизитов кафедры).
+    - Слайд 17: технологическое применение (полностью очищено от упоминаний ЛР).
+    """
+    prs = create_base_presentation()
+
+    # 1. Добавляем первые 3 слайда выбранной вариации
+    if primary_variation == 1:
+        add_variation_1_slides(prs)
+    elif primary_variation == 2:
+        add_variation_2_slides(prs)
+    elif primary_variation == 3:
+        add_variation_3_slides(prs)
+    else:
+        add_variation_1_slides(prs)
+
+    # 2. Добавляем последующие слайды теории (Слайды 4–17)
     blank_layout = prs.slide_layouts[6]
 
-    for spec in SLIDES_SPEC:
+    for spec in CORE_SLIDES_SPEC:
         slide = prs.slides.add_slide(blank_layout)
-        add_header(slide, spec["title"], spec["subtitle"])
+        add_suai_header(slide, spec["title"], spec["subtitle"])
 
         if spec["layout"] == "A":
-            # Левая колонка: карточки теории (left = 0.5", width = 5.35")
+            # Левая колонка карточек теории
             curr_top = 1.25
             for card in spec["cards"]:
                 h = card["height"] + 0.06
-                add_rich_card(slide, 0.5, curr_top, 5.35, h, card["heading"], card["bullets"], font_size=11.4)
+                add_rich_card(slide, 0.60, curr_top, 5.35, h, card["heading"], card["bullets"], font_size=11.4)
                 curr_top += h + 0.12
 
-            # Правая колонка: математически точный график / схема (left = 6.0", top = 1.25", width = 6.83", height = 5.15")
-            add_fitted_figure(slide, 6.0, 1.25, 6.83, 5.15,
+            # Правая колонка с иллюстрацией
+            add_fitted_figure(slide, 6.20, 1.25, 6.533, 5.15,
                               spec["fig"], spec["fig_desc"], use_placeholder_only=use_placeholders_only)
 
         elif spec["layout"] == "B":
@@ -805,18 +1617,39 @@ def build_deck(output_path: str, use_placeholders_only: bool = False):
             for tc in spec["top_cards"]:
                 add_rich_card(slide, tc["left"], 1.25, tc["width"], tc["height"],
                               tc["heading"], tc["bullets"], font_size=11.2)
-            # Полноширинная многопанельная схема внизу
-            add_fitted_figure(slide, 0.5, 2.78, 12.333, 3.68,
+            # Полноширинная фигура внизу
+            add_fitted_figure(slide, 0.60, 2.78, 12.133, 3.68,
                               spec["fig"], spec["fig_desc"], use_placeholder_only=use_placeholders_only)
 
         add_takeaway_banner(slide, spec["takeaway"])
         set_speaker_notes(slide, spec["notes"])
 
+    highlight_r3_abbreviations_in_deck(prs)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     prs.save(output_path)
-    print(f"Presentation saved successfully: {output_path} ({len(prs.slides)} slides)")
+    print(f"[SUCCESS] Основная презентация лекции успешно собрана: {output_path} ({len(prs.slides)} слайдов)")
+    return prs
 
+
+# ==============================================================================
+# 6. Точка входа в скрипт
+# ==============================================================================
 
 if __name__ == "__main__":
-    # Этап 2–4: Сборка полной презентации lecture_03_colloids.pptx
-    build_deck(OUT_PPTX, use_placeholders_only=False)
+    print("=" * 78)
+    print("ГЕНЕРАТОР ПРЕЗЕНТАЦИЙ ЛЕКЦИИ №3 (ГУАП, КУРС «ФОН», СЕМЕСТР 4)")
+    print("=" * 78)
+
+    # 1. Сборка сравнительной презентации вариаций (14 слайдов)
+    print("\n[ЭТАП 1/2] Сборка презентации сравнительных дизайн-вариаций...")
+    build_comparative_deck(OUT_VARIATIONS_PPTX)
+
+    # 2. Сборка основной презентации лекции (17 слайдов)
+    print("\n[ЭТАП 2/2] Сборка основной лекционной презентации (17 слайдов)...")
+    build_lecture_03_deck(OUT_MAIN_PPTX, primary_variation=1, use_placeholders_only=False)
+
+    print("\n" + "=" * 78)
+    print("ВСЕ ПРЕЗЕНТАЦИИ УСПЕШНО СКОМПИЛИРОВАНЫ!")
+    print(f"1. Сравнительный дек: {OUT_VARIATIONS_PPTX}")
+    print(f"2. Основной дек лекции: {OUT_MAIN_PPTX}")
+    print("=" * 78)

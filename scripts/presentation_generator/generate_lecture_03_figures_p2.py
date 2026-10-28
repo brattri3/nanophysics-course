@@ -515,69 +515,75 @@ def fig_16_schultze_hardy_coagulation():
     plt.close(fig)
 
 
-def fig_17_labs_connection():
-    """Слайд 17: Сводная схема применения теории Лекции №3 к классическим гидрозолям Au и Fe(OH)3."""
-    fig, ax = plt.subplots(figsize=(8.6, 6.3), dpi=300)
-    ax.set_xlim(0, 12.0)
+def fig_17_colloid_applications():
+    """Слайд 17: Сводная схема применения теории Лекции №3: академические и промышленные прикладные модули."""
+    fig, ax = plt.subplots(figsize=(9.2, 6.3), dpi=300)
+    ax.set_xlim(0, 13.0)
     ax.set_ylim(0, 7.6)
     ax.axis('off')
 
-    ax.text(6.0, 7.25, "Применение теории ДЭС и ДЛФО к эталонным коллоидным наносистемам",
+    ax.text(6.5, 7.25, "Применение теории ДЭС и ДЛФО в наноинженерии: диагностика и синтез",
             ha='center', va='center', fontsize=11.5, fontweight='bold', color=NAVY)
 
-    # Левая карточка: Классическая система №1 (Золь золота Au)
-    b_lr2 = FancyBboxPatch((0.25, 0.35), 5.5, 6.45, boxstyle="round,pad=0.12",
-                           fc='#FDF2F2', ec=RED, lw=2.0)
-    ax.add_patch(b_lr2)
-    ax.text(3.0, 6.4, "МОДЕЛЬНАЯ СИСТЕМА №1\nЦитратный гидрозоль наночастиц золота (Au)",
-            ha='center', va='center', fontsize=9.8, fontweight='bold', color=RED)
+    # Левая карточка: Прикладной модуль №1 (Коллоидная диагностика золей Au)
+    box_mod1 = FancyBboxPatch((0.30, 0.35), 5.95, 6.45, boxstyle="round,pad=0.12",
+                              fc='#FDF2F2', ec=RED, lw=2.0)
+    ax.add_patch(box_mod1)
+    ax.text(3.27, 6.35, "ПРИКЛАДНОЙ МОДУЛЬ №1\nКоллоидная диагностика: плазмонный резонанс\nи дзета-потенциал нанозолей (Au)",
+            ha='center', va='center', fontsize=8.6, fontweight='bold', color=RED)
 
-    lr2_steps = [
-        ("1. Цитратный синтез (метод Туркевича):",
+    mod1_steps = [
+        ("1. Цитратный синтез наночастиц Au:",
          "HAuCl₄ + Na₃Cit (100 °C) → наночастицы Au\nдиаметром d ≈ 15–20 нм (узкое распределение)."),
-        ("2. Строение отрицательной мицеллы:",
-         "{[Au]_m · n Cit³⁻ · (3n−x) Na⁺}ˣ⁻ · x Na⁺\nЦитрат-анионы Cit³⁻ создают ζ ≈ −40 мВ."),
+        ("2. Строение ДЭС и дзета-потенциал:",
+         "{[Au]_m · n Cit³⁻ · (3n−x) Na⁺}ˣ⁻ · x Na⁺\nАдсорбция Cit³⁻ создает заряд ζ ≈ −40 мВ."),
         ("3. Двойная устойчивость наносистемы:",
-         "• Седиментационная: малый r ⇒ закон Перрена\n  гарантирует отсутствие оседания.\n"
+         "• Седиментационная: закон Перрена (малый r)\n  гарантирует диффузионную взвешенность.\n"
          "• Агрегативная: барьер ДЛФО U_max > 20 k_B T."),
-        ("4. Оптический отклик при коагуляции:",
-         "• Стабильный золь: рубиново-красный цвет,\n  пик плазмонного резонанса λ_max ≈ 520 нм.\n"
-         "• Добавка соли → агрегация → сдвиг пика\n  к 620–650 нм (раствор синеет!).")
+        ("4. Плазмонный мониторинг агрегации:",
+         "• Стабильный золь: рубиновый цвет (λ_max ≈ 520 нм).\n"
+         "• Сжатие ДЭС электролитом → агрегация частиц\n  со сдвигом пика к 650 нм (золь синеет!).")
     ]
-    y_curr = 5.65
-    for st_title, st_body in lr2_steps:
-        ax.text(0.45, y_curr, st_title, fontsize=8.4, fontweight='bold', color=NAVY)
-        ax.text(0.45, y_curr - 0.16, st_body, fontsize=7.6, color=DARK, va='top', linespacing=1.22)
+    y_curr = 5.55
+    for st_title, st_body in mod1_steps:
+        ax.text(0.55, y_curr, st_title, fontsize=8.0, fontweight='bold', color=NAVY)
+        ax.text(0.55, y_curr - 0.16, st_body, fontsize=7.2, color=DARK, va='top', linespacing=1.20)
         y_curr -= 1.35
 
-    # Правая карточка: Классическая система №2 (Коагуляция золя Fe(OH)3)
-    b_lr3 = FancyBboxPatch((6.25, 0.35), 5.5, 6.45, boxstyle="round,pad=0.12",
-                           fc='#EEF8F2', ec=GREEN, lw=2.0)
-    ax.add_patch(b_lr3)
-    ax.text(9.0, 6.4, "МОДЕЛЬНАЯ СИСТЕМА №2\nГидрозоль гидроксида железа Fe(OH)₃",
-            ha='center', va='center', fontsize=9.8, fontweight='bold', color=GREEN)
+    # Правая карточка: Прикладной модуль №2 (Промышленный синтез наносуспензий Fe(OH)3)
+    box_mod2 = FancyBboxPatch((6.75, 0.35), 5.95, 6.45, boxstyle="round,pad=0.12",
+                              fc='#EEF8F2', ec=GREEN, lw=2.0)
+    ax.add_patch(box_mod2)
+    ax.text(9.72, 6.35, "ПРИКЛАДНОЙ МОДУЛЬ №2\nПромышленный синтез стабильных наносуспензий\nи коагуляция гидрозоля Fe(OH)₃",
+            ha='center', va='center', fontsize=8.6, fontweight='bold', color=GREEN)
 
-    lr3_steps = [
-        ("1. Конденсационный синтез (гидролиз):",
+    mod2_steps = [
+        ("1. Конденсационный синтез золя (гидролиз):",
          "FeCl₃ + 3H₂O (кипячение) → Fe(OH)₃↓ + 3HCl\nСтабилизатор: оксихлорид FeOCl ⇄ FeO⁺ + Cl⁻."),
-        ("2. Строение положительной мицеллы:",
-         "{[Fe(OH)₃]_m · n FeO⁺ · (n−x) Cl⁻}ˣ⁺ · x Cl⁻\nГранула заряжена положительно (+x)!"),
-        ("3. Определение порога коагуляции γ_кр:",
-         "Титрование золя электролитами и расчет:\nγ_кр = (C_эл · V_эл) / (V_золя + V_эл) [ммоль/л]."),
+        ("2. Архитектура положительной мицеллы:",
+         "{[Fe(OH)₃]_m · n FeO⁺ · (n−x) Cl⁻}ˣ⁺ · x Cl⁻\nКатион FeO⁺ заряжает гранулу (+x)!"),
+        ("3. Прецизионный контроль порога коагуляции:",
+         "Управление стабильностью гидрозоля электролитом:\n"
+         "γ_кр = (C_эл · V_эл) / (V_золя + V_эл) [ммоль/л]."),
         ("4. Верификация правила Шульце–Гарди:",
-         "Коагулируют АНИОНЫ (противоионы):\n"
+         "Коагулируют АНИОНЫ по закону Дерягина–Ландау:\n"
          "• Cl⁻ (z=1)  :  SO₄²⁻ (z=2)  :  [Fe(CN)₆]³⁻ (z=3)\n"
-         "• Пороги коагуляции: γ₁ : γ₂ : γ₃ ≈ 1 : 2⁻⁶ : 3⁻⁶!")
+         "• Пороги: γ₁ : γ₂ : γ₃ ≈ 1 : 1/64 : 1/729 (закон z⁻⁶)!")
     ]
-    y_curr = 5.65
-    for st_title, st_body in lr3_steps:
-        ax.text(6.45, y_curr, st_title, fontsize=8.4, fontweight='bold', color=NAVY)
-        ax.text(6.45, y_curr - 0.16, st_body, fontsize=7.6, color=DARK, va='top', linespacing=1.22)
+    y_curr = 5.55
+    for st_title, st_body in mod2_steps:
+        ax.text(7.00, y_curr, st_title, fontsize=8.0, fontweight='bold', color=NAVY)
+        ax.text(7.00, y_curr - 0.16, st_body, fontsize=7.2, color=DARK, va='top', linespacing=1.20)
         y_curr -= 1.35
 
     fig.tight_layout()
+    fig.savefig(os.path.join(OUT_DIR, "fig_17_colloid_applications.png"), dpi=300, bbox_inches='tight', facecolor='white')
     fig.savefig(os.path.join(OUT_DIR, "fig_17_labs_connection.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)
+
+
+# Для обратной совместимости
+fig_17_labs_connection = fig_17_colloid_applications
 
 
 if __name__ == "__main__":
@@ -588,5 +594,5 @@ if __name__ == "__main__":
     fig_14_sedimentation_perren()
     fig_15_dlvo_potential()
     fig_16_schultze_hardy_coagulation()
-    fig_17_labs_connection()
+    fig_17_colloid_applications()
     print("Generated figures 10 to 17 successfully!")
