@@ -298,7 +298,7 @@ def fig_13_henry_function():
 
 
 def fig_14_sedimentation_perren():
-    """Слайд 14: Гипсометрический закон Лапласа–Перрена для гидрозоля золота (ЛР №2) при разных r."""
+    """Слайд 14: Гипсометрический закон Лапласа–Перрена для гидрозоля золота при разных r."""
     fig, ax = plt.subplots(figsize=(6.8, 5.1), dpi=300)
 
     # Физические константы для наночастиц золота в воде при T = 298 К
@@ -316,7 +316,7 @@ def fig_14_sedimentation_perren():
 
     radii_cases = [
         (2.0,  GREEN,  '1. Нанокластеры Au (r = 2 нм, d = 4 нм): идеальная однородность'),
-        (5.0,  BLUE,   '2. Нанозоль Au в ЛР №2 (r = 5 нм, d = 10 нм): седиментационно устойчив'),
+        (5.0,  BLUE,   '2. Типичный гидрозоль Au (r = 5 нм, d = 10 нм): седиментационно устойчив'),
         (8.5,  ORANGE, '3. Крупные НЧ Au (r = 8.5 нм, d = 17 нм): заметный градиент по высоте'),
         (16.0, RED,    '4. Агрегаты после коагуляции (r = 16 нм, d = 32 нм): оседание на дно')
     ]
@@ -337,7 +337,7 @@ def fig_14_sedimentation_perren():
                 arrowprops=dict(arrowstyle='->', color=ORANGE, lw=1.3))
 
     n_pt_50 = float(n_ratio_perrin(h_ref, 5.0))
-    ax.annotate(f"ЛР №2 (r = 5 нм, h = 5 мм):\nn(h)/n₀ = {n_pt_50:.2f} (золь не оседает!)",
+    ax.annotate(f"Золь Au (r = 5 нм, h = 5 мм):\nn(h)/n₀ = {n_pt_50:.2f} (золь не оседает!)",
                 xy=(n_pt_50, h_ref), xytext=(0.35, 8.2),
                 fontsize=8.2, fontweight='bold', color=BLUE, bbox=BBOX_STYLE,
                 arrowprops=dict(arrowstyle='->', color=BLUE, lw=1.3))
@@ -480,7 +480,7 @@ def fig_16_schultze_hardy_coagulation():
     ax1.legend(loc='upper right', fontsize=7.1, framealpha=0.95)
     ax1.grid(True, ls=':', alpha=0.5)
 
-    # Панель Б: Закон Дерягина–Ландау (γ_кр ∝ z⁻⁶) для коагуляции положительного золя Fe(OH)₃ в ЛР №3
+    # Панель Б: Закон Дерягина–Ландау (γ_кр ∝ z⁻⁶) для коагуляции положительного золя Fe(OH)₃
     z_vals = np.array([1, 2, 3])
     gamma_1 = 100.0  # ммоль/л для однозарядного Cl⁻ (типичное значение для золя Fe(OH)₃)
     gamma_theory = gamma_1 / (z_vals ** 6)
@@ -506,7 +506,7 @@ def fig_16_schultze_hardy_coagulation():
     ax2.set_xlim(0.05, 8000.0)
     ax2.set_xlabel("Порог коагуляции γ_кр, ммоль/л (логарифмическая шкала, закон z⁻⁶)",
                    fontsize=9.2, fontweight='bold', color=NAVY)
-    ax2.set_title("Б. Правило Шульце–Гарди (γ₁ : γ₂ : γ₃ = 1 : 1/64 : 1/729) для золя Fe(OH)₃ в ЛР №3",
+    ax2.set_title("Б. Правило Шульце–Гарди (γ₁ : γ₂ : γ₃ = 1 : 1/64 : 1/729) для гидрозоля Fe(OH)₃",
                   fontsize=9.8, fontweight='bold', color=NAVY)
     ax2.grid(True, which='both', axis='x', ls=':', alpha=0.5)
 
@@ -516,20 +516,20 @@ def fig_16_schultze_hardy_coagulation():
 
 
 def fig_17_labs_connection():
-    """Слайд 17: Сводная схема связи теории Лекции №3 с Лабораторными работами №2 (Au) и №3 (Fe(OH)3)."""
+    """Слайд 17: Сводная схема применения теории Лекции №3 к классическим гидрозолям Au и Fe(OH)3."""
     fig, ax = plt.subplots(figsize=(8.6, 6.3), dpi=300)
     ax.set_xlim(0, 12.0)
     ax.set_ylim(0, 7.6)
     ax.axis('off')
 
-    ax.text(6.0, 7.25, "Физика коллоидных наносистем в лабораторном практикуме Кафедры №3",
+    ax.text(6.0, 7.25, "Применение теории ДЭС и ДЛФО к эталонным коллоидным наносистемам",
             ha='center', va='center', fontsize=11.5, fontweight='bold', color=NAVY)
 
-    # Левая карточка: ЛР №2 (Золь золота Au)
+    # Левая карточка: Классическая система №1 (Золь золота Au)
     b_lr2 = FancyBboxPatch((0.25, 0.35), 5.5, 6.45, boxstyle="round,pad=0.12",
                            fc='#FDF2F2', ec=RED, lw=2.0)
     ax.add_patch(b_lr2)
-    ax.text(3.0, 6.4, "ЛАБОРАТОРНАЯ РАБОТА №2\nГидрозоль наночастиц золота (Au)",
+    ax.text(3.0, 6.4, "МОДЕЛЬНАЯ СИСТЕМА №1\nЦитратный гидрозоль наночастиц золота (Au)",
             ha='center', va='center', fontsize=9.8, fontweight='bold', color=RED)
 
     lr2_steps = [
@@ -540,7 +540,7 @@ def fig_17_labs_connection():
         ("3. Двойная устойчивость наносистемы:",
          "• Седиментационная: малый r ⇒ закон Перрена\n  гарантирует отсутствие оседания.\n"
          "• Агрегативная: барьер ДЛФО U_max > 20 k_B T."),
-        ("4. Оптический контроль коагуляции:",
+        ("4. Оптический отклик при коагуляции:",
          "• Стабильный золь: рубиново-красный цвет,\n  пик плазмонного резонанса λ_max ≈ 520 нм.\n"
          "• Добавка соли → агрегация → сдвиг пика\n  к 620–650 нм (раствор синеет!).")
     ]
@@ -550,11 +550,11 @@ def fig_17_labs_connection():
         ax.text(0.45, y_curr - 0.16, st_body, fontsize=7.6, color=DARK, va='top', linespacing=1.22)
         y_curr -= 1.35
 
-    # Правая карточка: ЛР №3 (Коагуляция золя Fe(OH)3)
+    # Правая карточка: Классическая система №2 (Коагуляция золя Fe(OH)3)
     b_lr3 = FancyBboxPatch((6.25, 0.35), 5.5, 6.45, boxstyle="round,pad=0.12",
                            fc='#EEF8F2', ec=GREEN, lw=2.0)
     ax.add_patch(b_lr3)
-    ax.text(9.0, 6.4, "ЛАБОРАТОРНАЯ РАБОТА №3\nКоагуляция золя гидроксида железа Fe(OH)₃",
+    ax.text(9.0, 6.4, "МОДЕЛЬНАЯ СИСТЕМА №2\nГидрозоль гидроксида железа Fe(OH)₃",
             ha='center', va='center', fontsize=9.8, fontweight='bold', color=GREEN)
 
     lr3_steps = [
