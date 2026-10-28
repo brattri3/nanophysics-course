@@ -1,0 +1,150 @@
+% ==============================================================================
+% ПРЕАМБУЛА: Учебно-методическое пособие по дисциплине
+% «Физические основы нанотехнологий» (ГУАП, Кафедра №3)
+% ==============================================================================
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+
+% Геометрия страницы по университетскому стандарту
+\usepackage[a4paper, top=20mm, bottom=20mm, left=25mm, right=15mm, headheight=15pt]{geometry}
+
+% Нумерация в стиле «Глава 2» (2.X)
+\renewcommand{\thesection}{2.\arabic{section}}
+\renewcommand{\thesubsection}{2.\arabic{section}.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{2.\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
+\renewcommand{\theequation}{2.\arabic{equation}}
+\renewcommand{\thefigure}{2.\arabic{figure}}
+\renewcommand{\thetable}{2.\arabic{table}}
+
+% Типографика и микротипографика
+\usepackage{microtype}
+\usepackage{indentfirst}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{2pt plus 1pt minus 1pt}
+\linespread{1.15}
+
+% Математические пакеты
+\usepackage{amsmath,amssymb,mathtools,bm}
+
+% Таблицы
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+
+% Графика и подрисунки
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup{font=small, labelfont=bf, labelsep=period, justification=centering}
+\captionsetup[sub]{font=small, labelfont=bf, labelsep=space}
+
+% Цветовая палитра ГУАП
+\usepackage{xcolor}
+\definecolor{guapblue}{RGB}{0, 44, 95}       % Фирменный темно-синий ГУАП
+\definecolor{guapaccent}{RGB}{0, 102, 204}   % Небесно-голубой акцент
+\definecolor{darkslate}{RGB}{36, 40, 52}     % Основной текст
+\definecolor{examplegreen}{RGB}{24, 115, 60} % Зеленый для примеров задач
+\definecolor{amberdark}{RGB}{185, 110, 0}    % Янтарный для замечаний
+\definecolor{bordergray}{RGB}{210, 215, 225}
+
+% Выделенные блоки tcolorbox
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% 1. Определение
+\newtcolorbox{defbox}[1]{
+    enhanced,
+    breakable,
+    colback=guapblue!4!white,
+    colframe=guapblue,
+    coltitle=white,
+    fonttitle=\bfseries\sffamily,
+    title=Определение: #1,
+    arc=2mm,
+    boxrule=1pt,
+    top=3mm, bottom=3mm, left=3mm, right=3mm
+}
+
+% 2. Закон / Правило
+\newtcolorbox{lawbox}[1]{
+    enhanced,
+    breakable,
+    colback=guapaccent!5!white,
+    colframe=guapaccent!85!black,
+    coltitle=white,
+    fonttitle=\bfseries\sffamily,
+    title=Закон / Правило: #1,
+    arc=2mm,
+    boxrule=1pt,
+    top=3mm, bottom=3mm, left=3mm, right=3mm
+}
+
+% 3. Пример решения задачи
+\newtcolorbox{exbox}[1]{
+    enhanced,
+    breakable,
+    colback=examplegreen!4!white,
+    colframe=examplegreen,
+    coltitle=white,
+    fonttitle=\bfseries\sffamily,
+    title=Пример решения задачи: #1,
+    arc=2mm,
+    boxrule=1pt,
+    top=3mm, bottom=3mm, left=3mm, right=3mm
+}
+
+% 4. Методическое замечание / Важное указание
+\newtcolorbox{notebox}[1]{
+    enhanced,
+    breakable,
+    colback=amberdark!5!white,
+    colframe=amberdark,
+    coltitle=white,
+    fonttitle=\bfseries\sffamily,
+    title=Методическое замечание: #1,
+    arc=2mm,
+    boxrule=1pt,
+    top=3mm, bottom=3mm, left=3mm, right=3mm
+}
+
+% 5. Контрольные вопросы и задания
+\newtcolorbox{questbox}[1]{
+    enhanced,
+    breakable,
+    colback=guapblue!3!white,
+    colframe=guapblue!70!black,
+    coltitle=white,
+    fonttitle=\bfseries\sffamily,
+    title=Задание для самопроверки: #1,
+    arc=2mm,
+    boxrule=0.8pt,
+    top=3mm, bottom=3mm, left=3mm, right=3mm
+}
+
+% Оформление колонтитулов
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily\textcolor{guapblue}{Физические основы нанотехнологий}}
+\fancyhead[R]{\small\sffamily\textcolor{guapblue}{Глава 2. Термодинамика наноструктур}}
+\fancyfoot[C]{\sffamily\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Ссылки и навигация
+\usepackage[unicode, colorlinks=true, linkcolor=guapblue, citecolor=examplegreen, urlcolor=guapaccent]{hyperref}
+
+% Заголовки разделов
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\sffamily\color{guapblue}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\sffamily\color{guapblue!85!black}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\sffamily\color{guapblue!70!black}}{\thesubsubsection}{1em}{}
+
+% Путь к рисункам
+\graphicspath{{figures/}}

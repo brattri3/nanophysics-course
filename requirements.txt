@@ -1,0 +1,15 @@
+# Python-зависимости проекта nanophysics-course
+# Установка через uv: uv sync  или  uv pip install -r requirements.txt
+#
+# ВНИМАНИЕ: помимо Python-пакетов требуются установленные в системе:
+# 1. Microsoft PowerPoint (Windows Desktop) — для MCP-сервера `powerpoint` и COM-рендера превью слайдов (pywin32)
+# 2. MiKTeX или TeX Live (pdflatex) — для компиляции глав методического пособия (.tex -> .pdf)
+# 3. MCP-сервер `powerpoint` (подключенный в Antigravity) — для интерактивного управления презентациями из чата
+
+python-pptx>=1.0.2
+matplotlib>=3.9.0
+numpy>=2.0.0
+scipy>=1.14.0
+Pillow>=10.4.0
+pywin32>=306; sys_platform == "win32"
+pymupdf>=1.24.0

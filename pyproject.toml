@@ -1,0 +1,49 @@
+[project]
+name = "nanophysics-course"
+version = "0.2.0"
+description = "Учебно-методический комплекс дисциплины «Физические основы нанотехнологий» (ГУАП): генераторы презентаций (.pptx), научных графиков и учебных пособий (LaTeX/PDF)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-pptx>=1.0.2",
+    "matplotlib>=3.9.0",
+    "numpy>=2.0.0",
+    "scipy>=1.14.0",
+    "Pillow>=10.4.0",
+    "pywin32>=306; sys_platform == 'win32'",
+    "pymupdf>=1.24.0",
+]
+
+[tool.nanophysics.external_requirements]
+# Внешние настольные приложения и утилиты ОС, необходимые для сборки материалов курса
+os = "Windows 10/11 (требуется для COM-автоматизации PowerPoint и MCP-сервера powerpoint)"
+powerpoint = "Microsoft PowerPoint (Desktop / Office 365 / 2019+) — живое управление через MCP и COM-экспорт слайдов в PNG"
+latex = "MiKTeX или TeX Live (pdflatex + кириллические пакеты T2A/babel-russian, tikz, pgfplots, tcolorbox) — компиляция глав учебного пособия в PDF"
+package_manager = "uv (https://docs.astral.sh/uv/) — запуск скриптов генерации без ручной настройки venv"
+
+[tool.nanophysics.mcp_servers]
+# Требуемые MCP-серверы для интерактивной работы агентов в проекте
+powerpoint = { required = true, tools = [
+    "manage_presentation",
+    "slide_snapshot",
+    "switch_slide",
+    "add_speaker_notes",
+    "list_templates",
+    "analyze_template",
+    "add_slide_with_layout",
+    "populate_placeholder",
+    "manage_slide",
+    "evaluate",
+    "add_animation",
+], description = "Интерактивное управление Microsoft PowerPoint из чата (создание, открытие, переключение слайдов, снимки экрана и правка на лету)" }
+science_biomolecular_structure_viewer_mcp = { required = false, tools = [
+    "get_state",
+    "load_structure",
+    "highlight_region",
+    "set_representation",
+    "set_overlays",
+    "annotate_region",
+    "remove_annotation",
+    "clear_annotations",
+    "clear_highlights",
+], description = "Интерактивный 3D-просмотрщик кристаллических и молекулярных структур (.cif, .pdb, .mmcif) в боковой панели" }
