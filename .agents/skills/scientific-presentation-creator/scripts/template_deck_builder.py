@@ -633,11 +633,12 @@ def create_section_divider_slide(
     style: str = "light",
     icon_path: Optional[str] = None,
     notes: str = "",
+    problem_ids: Optional[List[str]] = None,
 ) -> Any:
     """
     Layout S: Слайд-разделитель / Открытие проблемы (Section Divider).
     - Центрированная композиция.
-    - Крупная иконка-маркер проблемы (1.40" × 1.40").
+    - Крупные иконки-маркеры проблемы (1.40" × 1.40"), поддержка одиночной и парной иконок.
     - Надзаголовок проблемы, заголовок 24–28 pt Bold.
     - Физический тезис строго в 1–2 предложения (Pareto/Оккам).
     - Дорожная карта шагов решения в лекции.
@@ -663,25 +664,40 @@ def create_section_divider_slide(
     if is_navy and accent_color == SUAI_PALETTE["DEEP_NAVY"]:
         accent_color = SUAI_PALETTE["CYAN"]
 
-    # 1. Крупная иконка-маркер по центру (1.40" x 1.40")
-    resolved_icon = icon_path or get_problem_icon_path(problem_id)
-    if resolved_icon and os.path.exists(resolved_icon):
-        slide.shapes.add_picture(
-            resolved_icon, Inches(5.96), Inches(1.50), width=Inches(1.40), height=Inches(1.40)
-        )
-    else:
-        circle = slide.shapes.add_shape(
-            MSO_SHAPE.OVAL, Inches(5.96), Inches(1.50), Inches(1.40), Inches(1.40)
-        )
-        circle.fill.solid()
-        circle.fill.fore_color.rgb = SUAI_PALETTE["CARD_BG"]
-        circle.line.color.rgb = accent_color
-        circle.line.width = Pt(2.0)
+    # 1. Крупные иконки-маркеры по центру (1.40" x 1.40")
+    pids = problem_ids if problem_ids else [problem_id]
+    icon_w = 1.40
+    gap = 0.25
+    total_w = len(pids) * icon_w + (len(pids) - 1) * gap
+    start_x = (13.333 - total_w) / 2.0
+    for idx, pid in enumerate(pids):
+        ix = start_x + idx * (icon_w + gap)
+        resolved_icon = (icon_path if len(pids) == 1 else None) or get_problem_icon_path(pid)
+        if resolved_icon and os.path.exists(resolved_icon):
+            slide.shapes.add_picture(
+                resolved_icon, Inches(ix), Inches(1.45), width=Inches(icon_w), height=Inches(icon_w)
+            )
+        else:
+            circle = slide.shapes.add_shape(
+                MSO_SHAPE.OVAL, Inches(ix), Inches(1.45), Inches(icon_w), Inches(icon_w)
+            )
+            circle.fill.solid()
+            circle.fill.fore_color.rgb = SUAI_PALETTE["CARD_BG"]
+            meta_i = PROBLEM_TAXONOMY.get(pid.lower(), {})
+            col_i = meta_i.get("color", SUAI_PALETTE["RED"])
+            if is_navy and col_i == SUAI_PALETTE["DEEP_NAVY"]:
+                col_i = SUAI_PALETTE["CYAN"]
+            circle.line.color.rgb = col_i
+            circle.line.width = Pt(2.0)
 
     # 2. Надзаголовок проблемы
-    tb_sub = slide.shapes.add_textbox(Inches(1.50), Inches(3.10), Inches(10.333), Inches(0.35))
+    tb_sub = slide.shapes.add_textbox(Inches(1.50), Inches(3.02), Inches(10.333), Inches(0.25))
     tf_s = tb_sub.text_frame
     tf_s.word_wrap = True
+    tf_s.margin_left = Inches(0.0)
+    tf_s.margin_right = Inches(0.0)
+    tf_s.margin_top = Inches(0.0)
+    tf_s.margin_bottom = Inches(0.0)
     p_s = tf_s.paragraphs[0]
     p_s.alignment = PP_ALIGN.CENTER
     p_s.text = subtitle
@@ -691,26 +707,34 @@ def create_section_divider_slide(
     p_s.font.color.rgb = accent_color
 
     # 3. Основной заголовок раздела / проблемы
-    tb_t = slide.shapes.add_textbox(Inches(1.00), Inches(3.50), Inches(11.333), Inches(0.75))
+    tb_t = slide.shapes.add_textbox(Inches(1.00), Inches(3.42), Inches(11.333), Inches(0.88))
     tf_t = tb_t.text_frame
     tf_t.word_wrap = True
+    tf_t.margin_left = Inches(0.0)
+    tf_t.margin_right = Inches(0.0)
+    tf_t.margin_top = Inches(0.0)
+    tf_t.margin_bottom = Inches(0.0)
     p_t = tf_t.paragraphs[0]
     p_t.alignment = PP_ALIGN.CENTER
     p_t.text = title
     p_t.font.name = "Arial"
-    p_t.font.size = Pt(26)
+    p_t.font.size = Pt(24)
     p_t.font.bold = True
     p_t.font.color.rgb = title_color
 
     # 4. Физический тезис (1-2 предложения)
-    tb_th = slide.shapes.add_textbox(Inches(1.40), Inches(4.35), Inches(10.533), Inches(0.85))
+    tb_th = slide.shapes.add_textbox(Inches(1.10), Inches(4.46), Inches(11.133), Inches(0.90))
     tf_th = tb_th.text_frame
     tf_th.word_wrap = True
+    tf_th.margin_left = Inches(0.0)
+    tf_th.margin_right = Inches(0.0)
+    tf_th.margin_top = Inches(0.0)
+    tf_th.margin_bottom = Inches(0.0)
     p_th = tf_th.paragraphs[0]
     p_th.alignment = PP_ALIGN.CENTER
     p_th.text = thesis
     p_th.font.name = "Arial"
-    p_th.font.size = Pt(16)
+    p_th.font.size = Pt(13.0)
     p_th.font.color.rgb = thesis_color
 
     # 5. Дорожная карта шагов (Roadmap Pills)
@@ -719,31 +743,43 @@ def create_section_divider_slide(
         "2. Строение ДЭС",
         "3. Электростатический барьер ДЛФО"
     ]
-    pill_w = 3.20
-    total_w = len(steps) * pill_w + (len(steps) - 1) * 0.30
-    pill_start_x = (13.333 - total_w) / 2.0
-    pill_y = 5.45
+    num_steps = len(steps)
+    if num_steps > 0:
+        max_total_w = 12.133  # Стандартная ширина контента ГУАП (13.333 - 2 * 0.60)
+        gap = 0.20 if num_steps >= 4 else 0.25
+        if num_steps <= 3:
+            pill_w = 3.20
+            total_w = num_steps * pill_w + (num_steps - 1) * gap
+        else:
+            pill_w = (max_total_w - (num_steps - 1) * gap) / num_steps  # ~2.883" для 4 шагов
+            total_w = max_total_w
+        pill_start_x = (13.333 - total_w) / 2.0  # Ровно 0.60" для 4 шагов
+        pill_y = 5.55
 
-    for idx, step_text in enumerate(steps):
-        px = pill_start_x + idx * (pill_w + 0.30)
-        pill = slide.shapes.add_shape(
-            MSO_SHAPE.ROUNDED_RECTANGLE, Inches(px), Inches(pill_y), Inches(pill_w), Inches(0.48)
-        )
-        pill.fill.solid()
-        pill.fill.fore_color.rgb = RGBColor(15, 60, 115) if is_navy else SUAI_PALETTE["CARD_BG"]
-        pill.line.color.rgb = SUAI_PALETTE["CYAN"] if is_navy else SUAI_PALETTE["BLUE"]
-        pill.line.width = Pt(1.0)
+        for idx, step_text in enumerate(steps):
+            px = pill_start_x + idx * (pill_w + gap)
+            pill = slide.shapes.add_shape(
+                MSO_SHAPE.ROUNDED_RECTANGLE, Inches(px), Inches(pill_y), Inches(pill_w), Inches(0.50)
+            )
+            pill.fill.solid()
+            pill.fill.fore_color.rgb = RGBColor(15, 60, 115) if is_navy else SUAI_PALETTE["CARD_BG"]
+            pill.line.color.rgb = SUAI_PALETTE["CYAN"] if is_navy else SUAI_PALETTE["BLUE"]
+            pill.line.width = Pt(1.0)
 
-        tf_p = pill.text_frame
-        tf_p.word_wrap = True
-        tf_p.vertical_anchor = MSO_ANCHOR.MIDDLE
-        p_p = tf_p.paragraphs[0]
-        p_p.alignment = PP_ALIGN.CENTER
-        p_p.text = step_text
-        p_p.font.name = "Arial"
-        p_p.font.size = Pt(11.5)
-        p_p.font.bold = True
-        p_p.font.color.rgb = SUAI_PALETTE["WHITE"] if is_navy else SUAI_PALETTE["DEEP_NAVY"]
+            tf_p = pill.text_frame
+            tf_p.word_wrap = True
+            tf_p.vertical_anchor = MSO_ANCHOR.MIDDLE
+            tf_p.margin_left = Inches(0.06)
+            tf_p.margin_right = Inches(0.06)
+            tf_p.margin_top = Inches(0.02)
+            tf_p.margin_bottom = Inches(0.02)
+            p_p = tf_p.paragraphs[0]
+            p_p.alignment = PP_ALIGN.CENTER
+            p_p.text = step_text
+            p_p.font.name = "Arial"
+            p_p.font.size = Pt(10.5 if num_steps >= 4 else 11.5)
+            p_p.font.bold = True
+            p_p.font.color.rgb = SUAI_PALETTE["WHITE"] if is_navy else SUAI_PALETTE["DEEP_NAVY"]
 
     if notes:
         set_speaker_notes(slide, notes)

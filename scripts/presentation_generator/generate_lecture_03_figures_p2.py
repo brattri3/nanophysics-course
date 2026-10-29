@@ -7,7 +7,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, Circle
+from matplotlib.patches import FancyBboxPatch, Circle, Rectangle
 from scipy.optimize import minimize_scalar, brentq
 
 plt.rcParams['font.family'] = 'sans-serif'
@@ -85,7 +85,9 @@ def fig_10_stern_model():
                 fontsize=8.5, fontweight='bold', color=RED, bbox=BBOX_STYLE,
                 arrowprops=dict(arrowstyle='->', color=RED, lw=1.3))
 
-    ax.text(0.3, -43, "Плоскость\nШтерна\nx = δ", ha='center', fontsize=8.0, fontweight='bold', color=NAVY)
+    ax.text(delta, -45, "Плоскость Штерна (x = δ)", ha='center', va='center',
+            fontsize=7.2, fontweight='bold', color=NAVY,
+            bbox=dict(boxstyle='round,pad=0.25', fc='white', ec=NAVY, lw=0.8, alpha=0.95))
 
     ax.set_xlim(0, 7.0)
     ax.set_ylim(-48, 112)
@@ -516,67 +518,114 @@ def fig_16_schultze_hardy_coagulation():
 
 
 def fig_17_colloid_applications():
-    """Слайд 17: Сводная схема применения теории Лекции №3: академические и промышленные прикладные модули."""
-    fig, ax = plt.subplots(figsize=(9.2, 6.3), dpi=300)
-    ax.set_xlim(0, 13.0)
-    ax.set_ylim(0, 7.6)
-    ax.axis('off')
+    """Слайд 20: Микрофлюидика на чипе, электрофоретическое осаждение нанопокрытий и контроль ДРС/ЭЛС."""
+    fig = plt.figure(figsize=(8.8, 6.4), dpi=300)
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.15, 0.95], hspace=0.35, wspace=0.25)
 
-    ax.text(6.5, 7.25, "Применение теории ДЭС и ДЛФО в наноинженерии: диагностика и синтез",
-            ha='center', va='center', fontsize=11.5, fontweight='bold', color=NAVY)
+    # 1. Микрофлюидика Lab-on-a-Chip: Профиль скоростей
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.set_xlim(-0.2, 5.2)
+    ax1.set_ylim(-1.4, 1.4)
+    ax1.set_title("1. Микрофлюидика: профили потока в наноканале", fontsize=9.2, fontweight='bold', color=NAVY)
 
-    # Левая карточка: Прикладной модуль №1 (Коллоидная диагностика золей Au)
-    box_mod1 = FancyBboxPatch((0.30, 0.35), 5.95, 6.45, boxstyle="round,pad=0.12",
-                              fc='#FDF2F2', ec=RED, lw=2.0)
-    ax.add_patch(box_mod1)
-    ax.text(3.27, 6.35, "ПРИКЛАДНОЙ МОДУЛЬ №1\nКоллоидная диагностика: плазмонный резонанс\nи дзета-потенциал нанозолей (Au)",
-            ha='center', va='center', fontsize=8.6, fontweight='bold', color=RED)
+    ax1.axhline(1.0, color=NAVY, lw=2.5)
+    ax1.axhline(-1.0, color=NAVY, lw=2.5)
+    ax1.text(0.1, 1.12, "Стенка микроканала (заряд σ < 0)", fontsize=7.2, color=MUTED)
+    ax1.text(0.1, -1.25, "Стенка микроканала (заряд σ < 0)", fontsize=7.2, color=MUTED)
 
-    mod1_steps = [
-        ("1. Цитратный синтез наночастиц Au:",
-         "HAuCl₄ + Na₃Cit (100 °C) → наночастицы Au\nдиаметром d ≈ 15–20 нм (узкое распределение)."),
-        ("2. Строение ДЭС и дзета-потенциал:",
-         "{[Au]_m · n Cit³⁻ · (3n−x) Na⁺}ˣ⁻ · x Na⁺\nАдсорбция Cit³⁻ создает заряд ζ ≈ −40 мВ."),
-        ("3. Двойная устойчивость наносистемы:",
-         "• Седиментационная: закон Перрена (малый r)\n  гарантирует диффузионную взвешенность.\n"
-         "• Агрегативная: барьер ДЛФО U_max > 20 k_B T."),
-        ("4. Плазмонный мониторинг агрегации:",
-         "• Стабильный золь: рубиновый цвет (λ_max ≈ 520 нм).\n"
-         "• Сжатие ДЭС электролитом → агрегация частиц\n  со сдвигом пика к 650 нм (золь синеет!).")
-    ]
-    y_curr = 5.55
-    for st_title, st_body in mod1_steps:
-        ax.text(0.55, y_curr, st_title, fontsize=8.0, fontweight='bold', color=NAVY)
-        ax.text(0.55, y_curr - 0.16, st_body, fontsize=7.2, color=DARK, va='top', linespacing=1.20)
-        y_curr -= 1.35
+    for x_i in np.linspace(0.4, 4.6, 6):
+        ax1.text(x_i, 0.88, "−", ha='center', va='center', fontsize=8, color=RED, fontweight='bold')
+        ax1.text(x_i, 0.68, "+", ha='center', va='center', fontsize=7, color=BLUE)
+        ax1.text(x_i, -0.88, "−", ha='center', va='center', fontsize=8, color=RED, fontweight='bold')
+        ax1.text(x_i, -0.68, "+", ha='center', va='center', fontsize=7, color=BLUE)
 
-    # Правая карточка: Прикладной модуль №2 (Промышленный синтез наносуспензий Fe(OH)3)
-    box_mod2 = FancyBboxPatch((6.75, 0.35), 5.95, 6.45, boxstyle="round,pad=0.12",
-                              fc='#EEF8F2', ec=GREEN, lw=2.0)
-    ax.add_patch(box_mod2)
-    ax.text(9.72, 6.35, "ПРИКЛАДНОЙ МОДУЛЬ №2\nПромышленный синтез стабильных наносуспензий\nи коагуляция гидрозоля Fe(OH)₃",
-            ha='center', va='center', fontsize=8.6, fontweight='bold', color=GREEN)
+    y_vals = np.linspace(-0.85, 0.85, 11)
+    for y in y_vals:
+        ax1.annotate('', xy=(3.8, y), xytext=(2.2, y),
+                     arrowprops=dict(arrowstyle='->', color=GREEN, lw=1.5))
+    ax1.plot([3.8]*len(y_vals), y_vals, color=GREEN, lw=2.5, ls='-')
+    ax1.text(3.3, -0.3, "Поршневой поток Plug Flow\n(v_эо = const, без размытия!)",
+             ha='center', va='center', fontsize=7.5, fontweight='bold', color=GREEN, bbox=BBOX_STYLE)
 
-    mod2_steps = [
-        ("1. Конденсационный синтез золя (гидролиз):",
-         "FeCl₃ + 3H₂O (кипячение) → Fe(OH)₃↓ + 3HCl\nСтабилизатор: оксихлорид FeOCl ⇄ FeO⁺ + Cl⁻."),
-        ("2. Архитектура положительной мицеллы:",
-         "{[Fe(OH)₃]_m · n FeO⁺ · (n−x) Cl⁻}ˣ⁺ · x Cl⁻\nКатион FeO⁺ заряжает гранулу (+x)!"),
-        ("3. Прецизионный контроль порога коагуляции:",
-         "Управление стабильностью гидрозоля электролитом:\n"
-         "γ_кр = (C_эл · V_эл) / (V_золя + V_эл) [ммоль/л]."),
-        ("4. Верификация правила Шульце–Гарди:",
-         "Коагулируют АНИОНЫ по закону Дерягина–Ландау:\n"
-         "• Cl⁻ (z=1)  :  SO₄²⁻ (z=2)  :  [Fe(CN)₆]³⁻ (z=3)\n"
-         "• Пороги: γ₁ : γ₂ : γ₃ ≈ 1 : 1/64 : 1/729 (закон z⁻⁶)!")
-    ]
-    y_curr = 5.55
-    for st_title, st_body in mod2_steps:
-        ax.text(7.00, y_curr, st_title, fontsize=8.0, fontweight='bold', color=NAVY)
-        ax.text(7.00, y_curr - 0.16, st_body, fontsize=7.2, color=DARK, va='top', linespacing=1.20)
-        y_curr -= 1.35
+    y_p = np.linspace(-0.95, 0.95, 30)
+    x_p = 1.0 + 1.1 * (1 - (y_p/0.95)**2)
+    ax1.plot(x_p, y_p, color=ORANGE, lw=1.8, ls='--')
+    ax1.text(1.0, 0.5, "Пуазейль (ΔP):\nпарабола\n(дисперсия!)",
+             ha='center', va='center', fontsize=6.8, color=ORANGE, bbox=BBOX_STYLE)
 
-    fig.tight_layout()
+    ax1.set_xticks([])
+    ax1.set_yticks([])
+    for sp in ax1.spines.values():
+        sp.set_color('#CCDDEE')
+
+    # 2. Электрофоретическое осаждение нанопокрытий (ЭФО / EPD)
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.set_xlim(0, 10)
+    ax2.set_ylim(0, 7.5)
+    ax2.set_title("2. Электрофоретическое осаждение нанопленок (ЭФО)", fontsize=9.2, fontweight='bold', color=NAVY)
+
+    ax2.add_patch(FancyBboxPatch((0.5, 1.2), 0.7, 5.2, boxstyle="round,pad=0.03", fc=RED, ec=DARK))
+    ax2.text(0.85, 3.8, "+\nАнод", ha='center', va='center', color='white', fontweight='bold', fontsize=7.5)
+
+    ax2.add_patch(FancyBboxPatch((8.0, 1.2), 1.85, 5.2, boxstyle="round,pad=0.03", fc=BLUE, ec=DARK))
+    ax2.text(8.925, 3.8, "−\nКатод\nподложка", ha='center', va='center', color='white', fontweight='bold', fontsize=5.8)
+
+    ax2.add_patch(Rectangle((7.3, 1.3), 0.7, 5.0, fc='#99C2E8', ec=BLUE, lw=1.2))
+    ax2.text(7.65, 6.6, "Плотная нанопленка\nm ∝ ∫ u_e C E dt", ha='center', va='center',
+             fontsize=7.0, fontweight='bold', color=NAVY, bbox=BBOX_STYLE)
+
+    np.random.seed(42)
+    for _ in range(12):
+        px = np.random.uniform(1.8, 6.6)
+        py = np.random.uniform(1.8, 5.8)
+        ax2.add_patch(Circle((px, py), 0.28, fc=RED, ec=DARK, lw=0.9))
+        ax2.text(px, py, "+", ha='center', va='center', color='white', fontsize=7, fontweight='bold')
+        ax2.annotate('', xy=(px + 0.6, py), xytext=(px + 0.28, py),
+                     arrowprops=dict(arrowstyle='->', color=BLUE, lw=1.2))
+
+    ax2.text(4.4, 1.6, "Дрейф наночастиц в поле: v = u_e · E", ha='center', fontsize=7.8,
+             fontweight='bold', color=NAVY, bbox=BBOX_STYLE)
+
+    ax2.set_xticks([])
+    ax2.set_yticks([])
+    for sp in ax2.spines.values():
+        sp.set_color('#CCDDEE')
+
+    # 3. Промышленный контроль стабильности: ДРС и ЭЛС (Zetasizer)
+    ax3 = fig.add_subplot(gs[1, :])
+    ax3.set_title("3. Промышленный контроль партий золей методом электрофоретического рассеяния света (ЭЛС)",
+                  fontsize=9.5, fontweight='bold', color=NAVY)
+
+    zeta_axis = np.linspace(-70, 70, 400)
+    stable_dist = np.exp(-((zeta_axis - (-42)) / 7.5)**2)
+    unstable_dist = np.exp(-((zeta_axis - (-12)) / 8.0)**2) * 0.75
+
+    ax3.axvspan(-70, -30, color='#E8F5E9', alpha=0.7, label='|ζ| ≥ 30 мВ: СТАБИЛЬНАЯ СУСПЕНЗИЯ (норма)')
+    ax3.axvspan(30, 70, color='#E8F5E9', alpha=0.7)
+    ax3.axvspan(-30, -15, color='#FFF8E1', alpha=0.7, label='15 < |ζ| < 30 мВ: ЗОНА РИСКА (медленная агрегация)')
+    ax3.axvspan(15, 30, color='#FFF8E1', alpha=0.7)
+    ax3.axvspan(-15, 15, color='#FFEBEE', alpha=0.7, label='|ζ| ≤ 15 мВ: БЫСТРАЯ КОАГУЛЯЦИЯ (брак партий!)')
+
+    ax3.plot(zeta_axis, stable_dist, color=GREEN, lw=2.5, label='Партия А: ζ_ср = −42 мВ (высокая стабильность)')
+    ax3.plot(zeta_axis, unstable_dist, color=RED, lw=2.2, ls='--', label='Партия Б: ζ_ср = −12 мВ (солевой шок, осадок)')
+
+    ax3.axvline(-30, color=DARK, ls=':', lw=1.5)
+    ax3.axvline(30, color=DARK, ls=':', lw=1.5)
+    ax3.text(-30, 0.88, "Порог устойчивости\n|ζ| = 30 мВ", ha='center', fontsize=7.5,
+             fontweight='bold', color=DARK, bbox=BBOX_STYLE)
+
+    ax3.axvline(0, color=RED, ls='-', lw=1.8)
+    ax3.text(0, 0.52, "ИЭТ (ζ = 0)", ha='center', fontsize=7.5, fontweight='bold', color=RED, bbox=BBOX_STYLE)
+
+    ax3.set_xlim(-70, 70)
+    ax3.set_ylim(0, 1.15)
+    ax3.set_xlabel("Дзета-потенциал ζ, мВ (измерение методом лазерного доплеровского электрофореза ЭЛС)",
+                   fontsize=8.8, fontweight='bold', color=NAVY)
+    ax3.set_ylabel("Интенсивность рассеяния", fontsize=8.8, fontweight='bold', color=NAVY)
+    ax3.legend(loc='upper right', fontsize=7.5, framealpha=0.92)
+    ax3.grid(True, ls=':', alpha=0.4)
+
+    fig.subplots_adjust(top=0.92, bottom=0.10, left=0.08, right=0.96, hspace=0.38, wspace=0.22)
     fig.savefig(os.path.join(OUT_DIR, "fig_17_colloid_applications.png"), dpi=300, bbox_inches='tight', facecolor='white')
     fig.savefig(os.path.join(OUT_DIR, "fig_17_labs_connection.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)

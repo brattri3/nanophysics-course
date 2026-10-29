@@ -12,5 +12,6 @@ __pycache__/
 course_materials/semester_4/lectures/slide_*_preview*.png
 course_materials/semester_4/lectures/slide_*_zoom.png
 course_materials/semester_4/manuals/page_previews/
+.agents/teamwork/
 
 

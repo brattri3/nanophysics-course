@@ -41,33 +41,33 @@ def fig_01_roadmap():
 
     blocks = [
         (0.3, 5.8, 10.6, 1.55, NAVY, '#EBF3FA',
-         "БЛОК 1. Классификация и геометрия дисперсных систем (Слайды 2–5)",
-         "• Удельная поверхность S_уд = k/a и избыточная энергия ΔG_s = σ·S\n"
-         "• Лиофильные и лиофобные системы; переход Золь → Гель → Ксерогель / Аэрогель\n"
-         "• Микропористые кристаллы — цеолиты (молекулярные сита и нанореакторы)"),
+         "РАЗДЕЛ 1. Слипание наночастиц и коллапс нанопор (Слайды 4–9)",
+         "• Скачок S_уд = 3/r, термодинамика Гиббса ΔG = σ·ΔA > 0, критерий Ребиндера\n"
+         "• Капиллярное давление Лапласа P_L ~ 200 МПа и схлопывание пор в ксерогель\n"
+         "• Сверхкритическая сушка аэрогеля SiO₂ и матричный синтез КТ в цеолитах"),
         (0.3, 3.95, 10.6, 1.55, BLUE, '#F0F6FC',
-         "БЛОК 2. Строение мицеллы и двойной электрический слой (Слайды 6–10)",
-         "• Правило Панета–Фаянса–Пескова; анатомия мицеллы (агрегат, ядро, гранула)\n"
-         "• Мицеллярные формулы классических золей AgI (перезарядка) и Fe(OH)₃ (гидролиз)\n"
-         "• Модели ДЭС: Гельмгольц, Гуи–Чепмен (длина Дебая λ_D = κ⁻¹) и синтез Штерна"),
+         "РАЗДЕЛ 2. Потеря заряда и разрушение оболочки мицеллы (Слайды 10–15)",
+         "• Правило Панета–Фаянса–Пескова, анатомия мицеллы (ядро, ПОИ, гранула, ПИ)\n"
+         "• Конструктор формул золей AgI (перезарядка) и Fe(OH)₃ (гидролиз)\n"
+         "• Модели ДЭС (Гельмгольц, Гуи–Чепмен, Штерн) и сжатие оболочки λ_D ∝ 1/(z√c)"),
         (0.3, 2.1, 10.6, 1.55, GREEN, '#EEF8F2',
-         "БЛОК 3. Дзета-потенциал и электрокинетические явления (Слайды 11–13)",
-         "• Плоскость скольжения и электрокинетический потенциал ζ = φ(x_s)\n"
+         "РАЗДЕЛ 3. Слепой контроль и микрофлюидика на чипе (Слайды 16–20)",
+         "• Плоскость скольжения, дзета-потенциал ζ, критерий «30 мВ» и ИЭТ\n"
          "• 4 явления Ф.Ф. Рейсса: электрофорез, электроосмос, потенциалы течения и оседания\n"
-         "• Функция Генри f(κr): пределы Хюккеля (κr ≪ 1) и Смолуховского (κr ≫ 1)"),
+         "• Уравнение Генри, пределы Хюккеля и Смолуховского, чипы Lab-on-a-Chip"),
         (0.3, 0.25, 10.6, 1.55, RED, '#FDF2F2',
-         "БЛОК 4. Устойчивость коллоидов и теория ДЛФО (Слайды 14–17)",
-         "• Седиментационно-диффузионное равновесие Лапласа–Перрена (h_e ∝ r⁻³)\n"
-         "• Теория ДЛФО: баланс сил Ван-дер-Ваальса и ДЭС, барьер U_max и вторичный минимум\n"
-         "• Порог коагуляции γ_кр, правило Шульце–Гарди (z⁻⁶) и разбор модельных золей Au и Fe(OH)₃")
+         "РАЗДЕЛ 4. Седиментация, солевой шок и барьер ДЛФО (Слайды 21–26)",
+         "• Баланс Перрена (r ≤ 10 нм) и седиментационная устойчивость феррожидкости\n"
+         "• Теория ДЛФО: ван-дер-ваальс vs ДЭС, барьер U_max ≥ 15 k_B T, коагуляция\n"
+         "• Правило Шульце–Гарди (1/z⁶), кинетика Смолуховского, стерическая защита ПАВ")
     ]
 
     for (x, y, w, h, border_col, bg_col, title, body) in blocks:
         box = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.12",
                              fc=bg_col, ec=border_col, lw=2.0)
         ax.add_patch(box)
-        ax.text(x + 0.22, y + h - 0.34, title, fontsize=9.8, fontweight='bold', color=border_col)
-        ax.text(x + 0.22, y + 0.14, body, fontsize=8.3, color=DARK, linespacing=1.28)
+        ax.text(x + 0.22, y + h - 0.34, title, fontsize=9.5, fontweight='bold', color=border_col)
+        ax.text(x + 0.22, y + 0.14, body, fontsize=8.0, color=DARK, linespacing=1.25)
 
     # Стрелки между блоками
     for y_top in [5.8, 3.95, 2.1]:
@@ -80,69 +80,80 @@ def fig_01_roadmap():
 
 
 def fig_02_specific_surface():
-    """Слайд 2: Аналитический график удельной поверхности S_уд(a) и доли поверхностных атомов."""
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6.8, 5.1), dpi=300, sharex=True)
+    """Слайд 5: Эффект Фарадея–Тиндаля, удельная поверхность S_уд(a) и доля поверхностных атомов."""
+    import matplotlib.gridspec as gridspec
+    from PIL import Image
+
+    tyndall_path = os.path.join(OUT_DIR, "fig_02_tyndall_effect.jpg")
+    fig = plt.figure(figsize=(7.2, 5.2), dpi=300)
+    gs = gridspec.GridSpec(2, 2, height_ratios=[1.1, 1.3], hspace=0.35, wspace=0.30)
+
+    # Панель А: Фотография эффекта Фарадея–Тиндаля (лазер в растворе vs нанозоле)
+    ax_photo = fig.add_subplot(gs[0, :])
+    if os.path.exists(tyndall_path):
+        im = Image.open(tyndall_path)
+        w, h = im.size
+        cropped = im.crop((0, int(h * 0.18), w, int(h * 0.58)))
+        ax_photo.imshow(cropped)
+    ax_photo.axis('off')
+    ax_photo.set_title("А. Эффект Фарадея–Тиндаля: истинный раствор (слева, луч невидим) vs нанозоль (справа, рассеяние)",
+                       fontsize=9.2, fontweight='bold', color=NAVY, pad=4)
 
     # Единый источник истины: аналитические функции
     a_nm = np.logspace(0, 3, 400)  # от 1 нм до 1000 нм
-    rho_sio2 = 2.2e6  # г/м³ (диоксид кремния / типичный оксид, чтобы получить м²/г)
+    rho_sio2 = 2.2e6  # г/м³ (диоксид кремния)
 
     def S_ud_m2_g(a_nm_val, k):
         a_m = a_nm_val * 1e-9
         return k / (rho_sio2 * a_m)
 
-    # Панель А: Удельная поверхность для сферы (k=6), нанонити (k=4), пленки (k=2)
-    ax1.axvspan(1, 100, color='#E6F4EA', alpha=0.7, label='Нанодисперсный (коллоидный) диапазон (1–100 нм)')
-    ax1.loglog(a_nm, S_ud_m2_g(a_nm, 6), color=RED, lw=2.4, label='3D Наночастицы / сферы (k = 6)')
-    ax1.loglog(a_nm, S_ud_m2_g(a_nm, 4), color=BLUE, lw=2.1, ls='--', label='1D Нанонити / волокна (k = 4)')
-    ax1.loglog(a_nm, S_ud_m2_g(a_nm, 2), color=GREEN, lw=2.1, ls='-.', label='2D Нанопленки / пластины (k = 2)')
+    # Панель Б: Удельная поверхность для сферы (k=6), нанонити (k=4), пленки (k=2)
+    ax1 = fig.add_subplot(gs[1, 0])
+    ax1.axvspan(1, 100, color='#E6F4EA', alpha=0.7, label='1–100 нм')
+    ax1.loglog(a_nm, S_ud_m2_g(a_nm, 6), color=RED, lw=2.2, label='3D (k=6)')
+    ax1.loglog(a_nm, S_ud_m2_g(a_nm, 4), color=BLUE, lw=1.8, ls='--', label='1D (k=4)')
+    ax1.loglog(a_nm, S_ud_m2_g(a_nm, 2), color=GREEN, lw=1.8, ls='-.', label='2D (k=2)')
 
-    # Реперные точки строго через вызов функции S_ud_m2_g
-    pts_s = [
-        (2.0, 2.7, 1500.0),
-        (10.0, 3.8, 22.0),
-        (100.0, 130.0, 32.0)
-    ]
+    pts_s = [(2.0, 2.5, 1500.0), (10.0, 3.8, 22.0), (100.0, 130.0, 32.0)]
     for a_pt, xt, yt in pts_s:
         s_pt = float(S_ud_m2_g(a_pt, 6))
-        ax1.scatter([a_pt], [s_pt], color=RED, s=55, zorder=5)
-        ax1.annotate(f"a = {int(a_pt)} нм\nS = {s_pt:.0f} м²/г",
+        ax1.scatter([a_pt], [s_pt], color=RED, s=35, zorder=5)
+        ax1.annotate(f"{int(a_pt)} нм:\n{s_pt:.0f} м²/г",
                      xy=(a_pt, s_pt), xytext=(xt, yt),
-                     fontsize=8.0, fontweight='bold', color=NAVY, bbox=BBOX_STYLE,
-                     arrowprops=dict(arrowstyle='->', color=RED, lw=1.0))
+                     fontsize=7.2, fontweight='bold', color=NAVY, bbox=BBOX_STYLE,
+                     arrowprops=dict(arrowstyle='->', color=RED, lw=0.8))
 
-    ax1.set_ylabel("S_уд, м²/г (SiO₂)", fontsize=10, fontweight='bold', color=NAVY)
-    ax1.set_title("А. Рост удельной поверхности S_уд = k / (ρ·a) при дроблении фазы",
-                  fontsize=10.5, fontweight='bold', color=NAVY)
+    ax1.set_xlabel("Размер a, нм", fontsize=8.5, fontweight='bold', color=NAVY)
+    ax1.set_ylabel("S_уд, м²/г (SiO₂)", fontsize=8.5, fontweight='bold', color=NAVY)
+    ax1.set_title("Б. Скачок S_уд = k / (ρ·a)", fontsize=9.2, fontweight='bold', color=NAVY)
     ax1.grid(True, which='both', ls=':', alpha=0.5)
-    ax1.legend(loc='upper right', fontsize=8.0, framealpha=0.95)
+    ax1.legend(loc='upper right', fontsize=7.2, framealpha=0.95)
 
-    # Панель Б: Доля поверхностных атомов в сферической наночастице золота (d_at = 0.288 нм)
+    # Панель В: Доля поверхностных атомов в сферической наночастице золота (d_at = 0.288 нм)
+    ax2 = fig.add_subplot(gs[1, 1])
     d_at = 0.288
 
     def frac_surface_atoms(a_nm_val):
-        # Отношение объема поверхностной оболочки толщиной d_at к полному объему сферы диаметра a
         r = a_nm_val / 2.0
         ratio = 1.0 - np.maximum(0.0, (r - d_at) / r) ** 3
         return ratio * 100.0
 
     ax2.axvspan(1, 100, color='#E6F4EA', alpha=0.7)
-    ax2.plot(a_nm, frac_surface_atoms(a_nm), color=NAVY, lw=2.5, label='Доля поверхностных атомов N_s / N_tot (%)')
+    ax2.plot(a_nm, frac_surface_atoms(a_nm), color=NAVY, lw=2.2, label='N_s / N_tot (%)')
 
     for a_pt, x_off, y_off in [(2.0, 2.8, 72), (5.0, 7.5, 42), (20.0, 28.0, 22)]:
         f_pt = float(frac_surface_atoms(a_pt))
-        ax2.scatter([a_pt], [f_pt], color=RED, s=55, zorder=5)
+        ax2.scatter([a_pt], [f_pt], color=RED, s=35, zorder=5)
         ax2.annotate(f"d = {int(a_pt)} нм: {f_pt:.1f}%",
                      xy=(a_pt, f_pt), xytext=(x_off, y_off),
-                     fontsize=8.5, fontweight='bold', color=DARK, bbox=BBOX_STYLE,
-                     arrowprops=dict(arrowstyle='->', color=NAVY, lw=1.0))
+                     fontsize=7.5, fontweight='bold', color=DARK, bbox=BBOX_STYLE,
+                     arrowprops=dict(arrowstyle='->', color=NAVY, lw=0.8))
 
     ax2.set_xscale('log')
     ax2.set_ylim(0, 100)
-    ax2.set_xlabel("Поперечный размер частиц (диаметр d = a), нм", fontsize=10, fontweight='bold', color=NAVY)
-    ax2.set_ylabel("Доля атомов на поверхности, %", fontsize=10, fontweight='bold', color=NAVY)
-    ax2.set_title("Б. Доля поверхностных атомов в наночастицах золота (Au)",
-                  fontsize=10.5, fontweight='bold', color=NAVY)
+    ax2.set_xlabel("Диаметр d, нм", fontsize=8.5, fontweight='bold', color=NAVY)
+    ax2.set_ylabel("Поверхностные атомы, %", fontsize=8.5, fontweight='bold', color=NAVY)
+    ax2.set_title("В. Доля поверхностных атомов Au", fontsize=9.2, fontweight='bold', color=NAVY)
     ax2.grid(True, which='both', ls=':', alpha=0.5)
 
     fig.tight_layout()
