@@ -1,17 +1,19 @@
 """
 Генерация иллюстраций (Часть 1: Слайды 2–12) для Лекции №4:
 «Поверхностные явления и механизмы роста плёнок».
-Строго по аналитическим формулам и из геометрических примитивов (300 DPI).
+Строго по аналитическим формулам, из геометрических примитивов и с включением
+подлинных открытых микрофотографий АСМ/ПЭМ/СЭМ и макрофото (300 DPI).
 """
 import os
+import subprocess
 import urllib.request
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, Circle, Rectangle, Wedge, Polygon
+from matplotlib.patches import FancyBboxPatch, Circle, Rectangle, Wedge
 from PIL import Image
 
 plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Segoe UI', 'Arial']
+plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'Segoe UI']
 plt.rcParams['axes.edgecolor'] = '#334455'
 plt.rcParams['axes.linewidth'] = 1.1
 
@@ -28,97 +30,139 @@ PURPLE = '#6D28D9'
 DARK = '#1E293B'
 MUTED = '#52606D'
 CARD_BG = '#F4F7FA'
-BBOX = dict(boxstyle='round,pad=0.28', fc='white', ec='#CBD5E1', alpha=0.95)
+BBOX = dict(boxstyle='round,pad=0.26', fc='white', ec='#CBD5E1', alpha=0.96)
+
+REAL_ASSETS = {
+    "real_afm_quantum_dots.png": "https://upload.wikimedia.org/wikipedia/commons/c/cf/AFM_image_of_111_dots_window_05_micron.png",
+    "real_tem_mesoporous_silica.jpg": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Mesoporous_Silica_Nanoparticle.jpg",
+    "real_lotus_droplet.jpg": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Lotus-Effekt_%28Droplet_on_Leaf%29_%C2%A9_W._Barthlott%2C_Lotus-Salvinia.de.jpg",
+    "real_contact_angle_goniometer.jpg": "https://upload.wikimedia.org/wikipedia/commons/0/02/Typical-droplet-acquisition-data-to-obtain-the-contact-angle----by-image-analysis-and-optimization-of-the-Laplace-equati.jpg",
+}
+
+
+def ensure_real_assets():
+    """Скачивает подлинные открытые научные микрофотографии (Wikimedia Commons CC BY / CC BY-SA) при их отсутствии."""
+    for fname, url in REAL_ASSETS.items():
+        dest = os.path.join(OUT_DIR, fname)
+        if os.path.exists(dest) and os.path.getsize(dest) > 5000:
+            continue
+        try:
+            subprocess.run(
+                ["curl.exe", "-s", "-L", "-A", "Mozilla/5.0", url, "-o", dest],
+                check=True, timeout=45
+            )
+            if fname == "real_lotus_droplet.jpg" and os.path.exists(dest):
+                with Image.open(dest) as im:
+                    im.thumbnail((1200, 900), Image.Resampling.LANCZOS)
+                    im.save(dest, quality=88, optimize=True)
+        except Exception as exc:
+            print(f"[WARN] Could not download {fname}: {exc}")
 
 
 def fig_02_problem_cases():
-    """Слайд 2: Сопоставление деградации (3D-островки/деветтинг) и сплошной эпитаксиальной наноструктуры + реальная СЭМ/оптика."""
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6.2, 5.4), dpi=300)
+    """Слайд 2: Подлинные экспериментальные микрофотографии АСМ, гониометрии и ПЭМ/СЭМ (Wikimedia CC BY-SA)."""
+    ensure_real_assets()
+    fig = plt.figure(figsize=(6.6, 5.2), dpi=300)
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.0, 1.12], width_ratios=[1.05, 1.0], hspace=0.28, wspace=0.18)
 
-    # Верхняя панель: Деветтинг и распад пленки Au/SiO2 на 3D-островки (Фольмер-Вебер, Δσ > 0)
-    np.random.seed(42)
-    x_grid, y_grid = np.meshgrid(np.linspace(0, 500, 300), np.linspace(0, 220, 140))
-    sem_bad = 0.18 + 0.04 * np.random.randn(*x_grid.shape)
-    centers = [(65, 60, 28), (150, 140, 34), (240, 75, 42), (340, 150, 31),
-               (425, 80, 36), (110, 175, 22), (290, 170, 25), (445, 165, 24), (195, 45, 26)]
-    for cx, cy, r in centers:
-        dist2 = (x_grid - cx)**2 + (y_grid - cy)**2
-        island = np.exp(-dist2 / (2 * (r * 0.55)**2))
-        rim = 0.25 * np.exp(-((np.sqrt(dist2) - r * 0.75) / 6.0)**2)
-        sem_bad += 0.72 * island + rim
-    ax1.imshow(np.clip(sem_bad, 0, 1), cmap='gray', extent=[0, 500, 0, 220], origin='lower', aspect='auto')
-    ax1.set_title("АВАРИЙНЫЙ РЕЖИМ: распад пленки Au/SiO₂ на 3D-островки (Δσ > 0, θ = 118°)",
-                  fontsize=8.8, fontweight='bold', color=RED, pad=5)
-    ax1.text(15, 185, "Разрыв проводящего канала (R → ∞)\nОбнаженная подложка SiO₂",
-             fontsize=7.8, fontweight='bold', color='white',
-             bbox=dict(boxstyle='round,pad=0.25', fc='#991B1B', ec='white', alpha=0.88))
-    # Масштабная линейка 100 нм
-    ax1.plot([370, 470], [22, 22], color='white', lw=3.5)
-    ax1.text(420, 32, "100 нм (СЭМ)", color='white', fontsize=7.5, fontweight='bold', ha='center')
-    ax1.set_xticks([])
-    ax1.set_yticks([])
+    ax_afm = fig.add_subplot(gs[0, 0])
+    ax_drop = fig.add_subplot(gs[0, 1])
+    ax_tem = fig.add_subplot(gs[1, :])
 
-    # Нижняя панель: Атомарно-гладкая сверхрешетка AlGaAs/GaAs и массив КТ InAs/GaAs
-    sem_good = 0.22 + 0.025 * np.random.randn(*x_grid.shape)
-    for y_layer in [35, 70, 105, 140, 175]:
-        sem_good += 0.48 * np.exp(-((y_grid - y_layer) / 5.5)**2)
-    for qx in np.linspace(55, 445, 7):
-        qd = 0.55 * np.exp(-((x_grid - qx)**2 / (2 * 14**2) + (y_grid - 183)**2 / (2 * 7**2))) * (y_grid >= 175)
-        sem_good += qd
-    ax2.imshow(np.clip(sem_good, 0, 1), cmap='bone', extent=[0, 500, 0, 220], origin='lower', aspect='auto')
-    ax2.set_title("ЦЕЛЕВОЙ РЕЖИМ: послойный FM-рост и когерентные КТ InAs/GaAs (Δσ ≤ 0)",
-                  fontsize=8.8, fontweight='bold', color=GREEN, pad=5)
-    ax2.text(15, 182, "Когерентные 3D КТ InAs (h > 1.7 МС)",
-             fontsize=7.6, fontweight='bold', color='white',
-             bbox=dict(boxstyle='round,pad=0.22', fc=BLUE, ec='white', alpha=0.88))
-    ax2.text(15, 78, "Атомарно-гладкие 2D-слои AlGaAs/GaAs (ДЭГ)",
-             fontsize=7.6, fontweight='bold', color='white',
-             bbox=dict(boxstyle='round,pad=0.22', fc=GREEN, ec='white', alpha=0.88))
-    ax2.plot([370, 470], [22, 22], color='white', lw=3.5)
-    ax2.text(420, 32, "20 нм (ПЭМ)", color='white', fontsize=7.5, fontweight='bold', ha='center')
-    ax2.set_xticks([])
-    ax2.set_yticks([])
+    # 1. Верх-лево: Подлинная АСМ-топография самоорганизованных 3D квантовых точек на террасах (окно 500 нм)
+    afm_path = os.path.join(OUT_DIR, "real_afm_quantum_dots.png")
+    if os.path.exists(afm_path):
+        with Image.open(afm_path) as im:
+            # Кадрируем рабочую область скана со шкалой 0..500 нм и градиентом высоты
+            w, h = im.size
+            crop_afm = im.crop((0, 0, w, int(h * 0.76)))
+            ax_afm.imshow(crop_afm)
+    ax_afm.set_title("а) АСМ: 3D-островки КТ (окно 500 нм)", fontsize=8.0, fontweight='bold', color=NAVY, pad=4)
+    ax_afm.text(0.03, 0.92, "Самоорганизация SK\n(высота 0–2.2 нм)", transform=ax_afm.transAxes,
+                fontsize=6.8, fontweight='bold', color='white', va='top',
+                bbox=dict(boxstyle='round,pad=0.2', fc=NAVY, ec='white', alpha=0.88))
+    ax_afm.set_xticks([])
+    ax_afm.set_yticks([])
 
-    fig.suptitle("Критический выбор нанотехнологии: деградация поверхности vs управляемая сборка",
-                 fontsize=9.5, fontweight='bold', color=NAVY, y=0.99)
-    fig.tight_layout()
+    # 2. Верх-право: Подлинная оптическая гониометрия сидячей капли (профиль Лапласа-Юнга)
+    drop_path = os.path.join(OUT_DIR, "real_contact_angle_goniometer.jpg")
+    if os.path.exists(drop_path):
+        with Image.open(drop_path) as im:
+            ax_drop.imshow(im)
+    ax_drop.set_title("б) Гониометрия капли (угол θ)", fontsize=8.0, fontweight='bold', color=RED, pad=4)
+    ax_drop.text(0.04, 0.92, "Несмачивание (θ > 90°)\nСтягивание дорожки", transform=ax_drop.transAxes,
+                 fontsize=6.8, fontweight='bold', color='white', va='top',
+                 bbox=dict(boxstyle='round,pad=0.2', fc='#991B1B', ec='white', alpha=0.88))
+    ax_drop.set_xticks([])
+    ax_drop.set_yticks([])
+
+    # 3. Низ: Подлинные микрофотографии ПЭМ и СЭМ мезопористого диоксида кремния (масштабы 100 нм и 20 нм)
+    tem_path = os.path.join(OUT_DIR, "real_tem_mesoporous_silica.jpg")
+    if os.path.exists(tem_path):
+        with Image.open(tem_path) as im:
+            w, h = im.size
+            # Верхняя полоса панелей (a, b) или нижняя полоса (c: ПЭМ, d: СЭМ S-5200 30kV)
+            crop_tem = im.crop((0, int(h * 0.50), w, h))
+            ax_tem.imshow(crop_tem)
+    ax_tem.set_title("в) ПЭМ (слева) и СЭМ (справа): мезопористый SiO₂ (масштаб 100 нм, вставки 20 нм)",
+                     fontsize=8.2, fontweight='bold', color=BLUE, pad=4)
+    ax_tem.text(0.50, 0.16, "Каналы d ≈ 4–10 нм: ΔPL ≈ 73 МПа, конденсация Кельвина и эталон БЭТ / BJH",
+                transform=ax_tem.transAxes, fontsize=6.6, fontweight='bold', color='white', ha='center',
+                bbox=dict(boxstyle='round,pad=0.20', fc=BLUE, ec='white', alpha=0.90))
+    ax_tem.set_xticks([])
+    ax_tem.set_yticks([])
+
+    fig.suptitle("Подлинные микрофотографии межфазных явлений (АСМ, гониометрия, ПЭМ/СЭМ — CC BY-SA)",
+                 fontsize=8.6, fontweight='bold', color=NAVY, y=0.99)
     fig.savefig(os.path.join(OUT_DIR, "fig_02_problem_cases.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)
 
 
 def fig_03_roadmap():
     """Слайд 3: Горизонтальная структурно-логическая блок-схема 4 разделов лекции."""
-    fig, ax = plt.subplots(figsize=(7.2, 4.8), dpi=300)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 6.5)
+    fig, ax = plt.subplots(figsize=(8.0, 5.1), dpi=300)
+    ax.set_xlim(0, 10.6)
+    ax.set_ylim(0, 6.6)
     ax.axis('off')
 
     blocks = [
-        (0.3, 3.5, 4.3, 2.3, NAVY, "РАЗДЕЛ 1. Смачивание и адгезия",
-         "• Поверхностная энергия σ (Дж/м²)\n• Когезия Wc = 2σ и адгезия Дюпре Wa\n• Закон Юнга: cos θ = (σs − σsl)/σl\n• Критерий Гаркинса S = Wa − Wc ≥ 0"),
-        (5.4, 3.5, 4.3, 2.3, BLUE, "РАЗДЕЛ 2. Кривизна и капиллярность",
-         "• Скачок Лапласа ΔP = 2σ/R (~720 атм)\n• Уравнение Кельвина Pr/P∞ = exp(±2σVm/rRT)\n• Созревание Оствальда в КТ (термошок)\n• Капиллярная конденсация и поры BJH"),
-        (0.3, 0.4, 4.3, 2.3, GREEN, "РАЗДЕЛ 3. Механизмы гетероэпитаксии",
-         "• Критерий Бауэра Δσ = σf + σi − σs\n• Упругая энергия несоответствия E ∝ ε²h\n• FM (2D, ДЭГ), VW (3D), SK (2D→3D, КТ)\n• Осцилляции ДБЭО (RHEED) и hc = 1.7 МС"),
-        (5.4, 0.4, 4.3, 2.3, PURPLE, "РАЗДЕЛ 4. Адсорбция и метрология БЭТ",
-         "• Физисорбция (Ван-дер-Ваальс) vs Хемосорбция\n• Монослой Ленгмюра θ = KP/(1+KP) (сенсоры)\n• Полимолекулярная теория БЭТ (P/P0 = 0.05–0.35)\n• Эталон N2 (77 К) и 6 изотерм ИЮПАК (IUPAC)")
+        (0.25, 3.55, 4.65, 2.35, NAVY, "РАЗДЕЛ 1. Смачивание и адгезия",
+         "• Поверхностная энергия σ (Дж/м²)\n"
+         "• Когезия Wc = 2σ и адгезия Дюпре Wa\n"
+         "• Закон Юнга: cos θ = (σs − σsl) / σl\n"
+         "• Критерий Гаркинса: S = Wa − Wc ≥ 0"),
+        (5.70, 3.55, 4.65, 2.35, BLUE, "РАЗДЕЛ 2. Кривизна и капиллярность",
+         "• Скачок Лапласа ΔPL = 2σ/R (~720 атм)\n"
+         "• Закон Кельвина: Pr/P∞ = exp(±2σVm/rRT)\n"
+         "• Созревание Оствальда в КТ (термошок)\n"
+         "• Капиллярная конденсация и поры BJH"),
+        (0.25, 0.40, 4.65, 2.35, GREEN, "РАЗДЕЛ 3. Механизмы гетероэпитаксии",
+         "• Критерий Бауэра: Δσ = σf + σi − σs\n"
+         "• Упругая энергия деформации Eупр ∝ ε²h\n"
+         "• Режимы FM (2D), VW (3D), SK (2D→3D КТ)\n"
+         "• Осцилляции ДБЭО (RHEED), hc = 1.7 МС"),
+        (5.70, 0.40, 4.65, 2.35, PURPLE, "РАЗДЕЛ 4. Адсорбция и метрология БЭТ",
+         "• Физисорбция (Ван-дер-Ваальс) и хемосорбция\n"
+         "• Изотерма Ленгмюра θ = KP/(1+KP) (сенсоры)\n"
+         "• Полимолекулярная теория БЭТ (0.05–0.35)\n"
+         "• Стандарт N₂ (77 К) и 6 изотерм ИЮПАК")
     ]
 
     for x, y, w, h, col, title, body in blocks:
-        card = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.12", fc=CARD_BG, ec=col, lw=2.0)
+        card = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.10", fc=CARD_BG, ec=col, lw=2.0)
         ax.add_patch(card)
-        hdr = FancyBboxPatch((x, y + h - 0.52), w, 0.52, boxstyle="round,pad=0.06", fc=col, ec=col, lw=1.0)
+        hdr = FancyBboxPatch((x, y + h - 0.50), w, 0.50, boxstyle="round,pad=0.05", fc=col, ec=col, lw=1.0)
         ax.add_patch(hdr)
-        ax.text(x + w/2, y + h - 0.26, title, color='white', fontsize=8.5, fontweight='bold', ha='center', va='center')
-        ax.text(x + 0.18, y + h - 0.72, body, color=DARK, fontsize=7.8, va='top', ha='left', linespacing=1.35)
+        ax.text(x + w / 2, y + h - 0.25, title, color='white', fontsize=8.0, fontweight='bold', ha='center', va='center')
+        ax.text(x + 0.16, y + h - 0.68, body, color=DARK, fontsize=7.5, va='top', ha='left', linespacing=1.35)
 
     # Стрелки связи между разделами
-    ax.annotate("", xy=(5.35, 4.65), xytext=(4.65, 4.65), arrowprops=dict(arrowstyle="->", color=ORANGE, lw=2.8))
-    ax.annotate("", xy=(2.45, 2.75), xytext=(7.55, 3.45), arrowprops=dict(arrowstyle="->", color=ORANGE, lw=2.2, ls='--'))
-    ax.annotate("", xy=(5.35, 1.55), xytext=(4.65, 1.55), arrowprops=dict(arrowstyle="->", color=ORANGE, lw=2.8))
+    ax.annotate("", xy=(5.60, 4.72), xytext=(5.00, 4.72), arrowprops=dict(arrowstyle="->", color=ORANGE, lw=2.6))
+    ax.annotate("", xy=(2.58, 2.85), xytext=(8.02, 3.45), arrowprops=dict(arrowstyle="->", color=ORANGE, lw=2.2, ls='--'))
+    ax.annotate("", xy=(5.60, 1.58), xytext=(5.00, 1.58), arrowprops=dict(arrowstyle="->", color=ORANGE, lw=2.6))
 
-    ax.text(5.0, 6.22, "Сквозная физико-инженерная логика управления поверхностью (σ → R → ε → Sуд)",
-            fontsize=9.8, fontweight='bold', color=NAVY, ha='center')
+    ax.text(5.30, 6.28, "Сквозная физико-инженерная логика управления поверхностью (σ → R → ε → Sуд)",
+            fontsize=9.4, fontweight='bold', color=NAVY, ha='center')
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "fig_03_roadmap.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)
@@ -126,255 +170,259 @@ def fig_03_roadmap():
 
 def fig_05_surface_energy_dupre():
     """Слайд 5: Координационный дефицит на поверхности (Zs < Zb) и схема работ когезии Wc = 2σ и адгезии Дюпре Wa."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.2, 4.9), dpi=300)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 4.9), dpi=300, gridspec_kw={'wspace': 0.20})
 
     # Левая панель: Кристаллическая решетка и нескомпенсированная сила
-    ax1.set_xlim(0, 6)
+    ax1.set_xlim(0.2, 5.8)
     ax1.set_ylim(0, 6.2)
     ax1.axhspan(0, 3.8, color='#E2E8F0', alpha=0.7)
     ax1.axhspan(3.8, 6.2, color='#F8FAFC', alpha=0.9)
     ax1.axhline(3.8, color=BLUE, lw=2.2, ls='--')
-    ax1.text(3.0, 5.75, "Газ / Вакуум (отсутствие соседей сверху)", fontsize=8.0, color=MUTED, ha='center', fontweight='bold')
+    ax1.text(3.0, 5.75, "Газ / Вакуум (нет соседей сверху)", fontsize=7.8, color=MUTED, ha='center', fontweight='bold')
 
     for ix in range(1, 6):
         for iy in range(1, 4):
             y_pos = iy * 1.1 + 0.3
             is_surf = (iy == 3)
             col = RED if (ix == 3 and is_surf) else (ORANGE if is_surf else BLUE)
-            c = Circle((ix, y_pos), 0.28, fc=col, ec='white', lw=1.2, zorder=5)
+            c = Circle((ix, y_pos), 0.27, fc=col, ec='white', lw=1.2, zorder=5)
             ax1.add_patch(c)
 
-    # Векторы сил для объемного атома (3, 1.4) и поверхностного (3, 3.6)
-    for dx, dy in [(-0.7, 0), (0.7, 0), (0, -0.7), (0, 0.7)]:
+    for dx, dy in [(-0.68, 0), (0.68, 0), (0, -0.68), (0, 0.68)]:
         ax1.annotate("", xy=(3 + dx, 1.4 + dy), xytext=(3, 1.4),
                      arrowprops=dict(arrowstyle="->", color=NAVY, lw=1.4))
-    ax1.text(3.0, 0.35, "Объем (Zb = 12): ∑F = 0", fontsize=8.0, fontweight='bold', color=NAVY, ha='center', bbox=BBOX)
+    ax1.text(3.0, 0.35, "Объем (Zb = 12): ∑F = 0", fontsize=7.8, fontweight='bold', color=NAVY, ha='center', bbox=BBOX)
 
-    for dx, dy in [(-0.75, 0), (0.75, 0), (-0.55, -0.65), (0.55, -0.65), (0, -0.95)]:
+    for dx, dy in [(-0.72, 0), (0.72, 0), (-0.52, -0.62), (0.52, -0.62), (0, -0.92)]:
         ax1.annotate("", xy=(3 + dx, 3.6 + dy), xytext=(3, 3.6),
                      arrowprops=dict(arrowstyle="->", color=RED, lw=1.8))
-    ax1.text(3.0, 4.65, "Поверхность (Zs < Zb):\nF_внутр ≠ 0 → σ = (∂G/∂A)",
-             fontsize=8.2, fontweight='bold', color=RED, ha='center', bbox=BBOX)
-    ax1.set_title("а) Микроскопическая природа σ", fontsize=9.2, fontweight='bold', color=NAVY)
+    ax1.text(3.0, 4.68, "Поверхность (Zs < Zb):\nFвнутр ≠ 0 → σ = (∂G/∂A)",
+             fontsize=7.8, fontweight='bold', color=RED, ha='center', bbox=BBOX)
+    ax1.set_title("а) Микроскопическая природа σ", fontsize=8.8, fontweight='bold', color=NAVY)
     ax1.set_xticks([])
     ax1.set_yticks([])
 
     # Правая панель: Когезия Wc vs Адгезия Дюпре Wa
-    ax2.set_xlim(0, 6)
+    ax2.set_xlim(0.0, 6.0)
     ax2.set_ylim(0, 6.2)
     # Верх: Когезия
-    ax2.add_patch(Rectangle((0.4, 4.2), 1.8, 1.2, fc=BLUE, ec=NAVY, alpha=0.85))
-    ax2.text(1.3, 4.8, "Фаза А\n(единая)", color='white', fontsize=7.8, fontweight='bold', ha='center', va='center')
-    ax2.annotate("", xy=(3.4, 4.8), xytext=(2.4, 4.8), arrowprops=dict(arrowstyle="->", color=NAVY, lw=2.2))
-    ax2.text(2.9, 5.15, "+Wc", fontsize=8.2, fontweight='bold', color=NAVY, ha='center')
-    ax2.add_patch(Rectangle((3.6, 4.95), 1.9, 0.55, fc=BLUE, ec=NAVY, alpha=0.85))
-    ax2.add_patch(Rectangle((3.6, 3.95), 1.9, 0.55, fc=BLUE, ec=NAVY, alpha=0.85))
-    ax2.text(4.55, 4.72, " +σ_l (1 м²) ", color=RED, fontsize=7.5, fontweight='bold', ha='center')
-    ax2.text(3.0, 3.45, "Когезия: Wc = 2σ_l (разрыв однородной фазы)", fontsize=8.0, fontweight='bold', color=NAVY, ha='center', bbox=BBOX)
+    ax2.add_patch(Rectangle((0.35, 4.25), 1.75, 1.15, fc=BLUE, ec=NAVY, alpha=0.85))
+    ax2.text(1.22, 4.82, "Фаза А\n(единая)", color='white', fontsize=7.6, fontweight='bold', ha='center', va='center')
+    ax2.annotate("", xy=(3.35, 4.82), xytext=(2.25, 4.82), arrowprops=dict(arrowstyle="->", color=NAVY, lw=2.2))
+    ax2.text(2.80, 5.15, "+Wc", fontsize=8.0, fontweight='bold', color=NAVY, ha='center')
+    ax2.add_patch(Rectangle((3.55, 4.98), 2.05, 0.52, fc=BLUE, ec=NAVY, alpha=0.85))
+    ax2.add_patch(Rectangle((3.55, 4.00), 2.05, 0.52, fc=BLUE, ec=NAVY, alpha=0.85))
+    ax2.text(4.58, 4.74, "+σl + σl (2 грани)", color=RED, fontsize=7.3, fontweight='bold', ha='center')
+    ax2.text(3.0, 3.48, "Когезия: Wc = 2σl (разрыв фазы)", fontsize=7.6, fontweight='bold', color=NAVY, ha='center', bbox=BBOX)
 
     # Низ: Адгезия Дюпре
-    ax2.add_patch(Rectangle((0.4, 1.65), 1.8, 0.65, fc=CYAN, ec=BLUE, alpha=0.85))
-    ax2.add_patch(Rectangle((0.4, 1.0), 1.8, 0.65, fc='#64748B', ec=DARK, alpha=0.9))
-    ax2.text(1.3, 1.97, "Пленка (l)", color='white', fontsize=7.2, fontweight='bold', ha='center', va='center')
-    ax2.text(1.3, 1.32, "Подложка (s)", color='white', fontsize=7.2, fontweight='bold', ha='center', va='center')
-    ax2.annotate("", xy=(3.4, 1.65), xytext=(2.4, 1.65), arrowprops=dict(arrowstyle="->", color=GREEN, lw=2.2))
-    ax2.text(2.9, 2.0, "+Wa", fontsize=8.2, fontweight='bold', color=GREEN, ha='center')
-    ax2.add_patch(Rectangle((3.6, 1.9), 1.9, 0.55, fc=CYAN, ec=BLUE, alpha=0.85))
-    ax2.add_patch(Rectangle((3.6, 0.9), 1.9, 0.55, fc='#64748B', ec=DARK, alpha=0.9))
-    ax2.text(4.55, 1.68, "+σ_s + σ_l − σ_sl", color=GREEN, fontsize=7.5, fontweight='bold', ha='center')
-    ax2.text(3.0, 0.35, "Адгезия Дюпре: Wa = σ_s + σ_l − σ_sl", fontsize=8.0, fontweight='bold', color=GREEN, ha='center', bbox=BBOX)
-    ax2.set_title("б) Работы когезии и адгезии Дюпре", fontsize=9.2, fontweight='bold', color=NAVY)
+    ax2.add_patch(Rectangle((0.35, 1.65), 1.75, 0.62, fc=CYAN, ec=BLUE, alpha=0.85))
+    ax2.add_patch(Rectangle((0.35, 1.03), 1.75, 0.62, fc='#64748B', ec=DARK, alpha=0.9))
+    ax2.text(1.22, 1.96, "Пленка (l)", color='white', fontsize=7.2, fontweight='bold', ha='center', va='center')
+    ax2.text(1.22, 1.34, "Подложка (s)", color='white', fontsize=7.2, fontweight='bold', ha='center', va='center')
+    ax2.annotate("", xy=(3.35, 1.65), xytext=(2.25, 1.65), arrowprops=dict(arrowstyle="->", color=GREEN, lw=2.2))
+    ax2.text(2.80, 1.98, "+Wa", fontsize=8.0, fontweight='bold', color=GREEN, ha='center')
+    ax2.add_patch(Rectangle((3.55, 1.92), 2.05, 0.52, fc=CYAN, ec=BLUE, alpha=0.85))
+    ax2.add_patch(Rectangle((3.55, 0.92), 2.05, 0.52, fc='#64748B', ec=DARK, alpha=0.9))
+    ax2.text(4.58, 1.68, "+σs + σl − σsl", color=GREEN, fontsize=7.3, fontweight='bold', ha='center')
+    ax2.text(3.0, 0.38, "Адгезия Дюпре: Wa = σs + σl − σsl", fontsize=7.6, fontweight='bold', color=GREEN, ha='center', bbox=BBOX)
+    ax2.set_title("б) Работы когезии и адгезии Дюпре", fontsize=8.8, fontweight='bold', color=NAVY)
     ax2.set_xticks([])
     ax2.set_yticks([])
 
-    fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "fig_05_surface_energy_dupre.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)
 
 
 def fig_06_young_harkins_droplet():
     """Слайд 6: Баланс векторов Юнга на трехфазной линии и аналитический график параметра растекания Гаркинса S(θ)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.3, 4.9), dpi=300)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 4.9), dpi=300, gridspec_kw={'wspace': 0.26})
 
     # Левая панель: Геометрия капли на подложке и векторы Юнга
     ax1.set_xlim(-2.2, 2.8)
     ax1.set_ylim(-0.7, 2.6)
     ax1.add_patch(Rectangle((-2.2, -0.7), 5.0, 0.7, fc='#CBD5E1', ec=DARK, lw=1.5))
-    ax1.text(0.3, -0.35, "Твердая подложка (Surface, σ_s)", fontsize=8.2, fontweight='bold', color=DARK, ha='center')
+    ax1.text(0.3, -0.35, "Твердая подложка (σs)", fontsize=8.0, fontweight='bold', color=DARK, ha='center')
 
     theta_deg = 52.0
     theta_rad = np.radians(theta_deg)
     R_drop = 1.65
     yc = -R_drop * np.cos(theta_rad)
     xc = R_drop * np.sin(theta_rad)
-    angles = np.linspace(np.pi/2 - theta_rad, np.pi/2 + theta_rad, 200)
+    angles = np.linspace(np.pi / 2 - theta_rad, np.pi / 2 + theta_rad, 200)
     x_drop = -xc + R_drop * np.cos(angles)
     y_drop = yc + R_drop * np.sin(angles)
     ax1.fill_between(x_drop, 0, y_drop, color='#38BDF8', alpha=0.55, edgecolor=BLUE, lw=2.0)
-    ax1.text(-xc, 0.42, "Жидкая фаза\n(Наночернила)", fontsize=8.0, fontweight='bold', color=NAVY, ha='center')
+    ax1.text(-xc, 0.42, "Жидкая фаза\n(наночернила)", fontsize=7.8, fontweight='bold', color=NAVY, ha='center')
 
-    # Трехфазная точка O = (0, 0)
     ax1.scatter([0], [0], color=RED, s=55, zorder=8)
-    # Вектор σ_s (вправо)
     ax1.annotate("", xy=(1.75, 0), xytext=(0, 0), arrowprops=dict(arrowstyle="->", color=GREEN, lw=2.5))
-    ax1.text(1.45, 0.16, "σ_s", fontsize=9.5, fontweight='bold', color=GREEN)
-    # Вектор σ_sl (влево)
+    ax1.text(1.42, 0.16, "σs", fontsize=9.2, fontweight='bold', color=GREEN)
     ax1.annotate("", xy=(-1.1, 0), xytext=(0, 0), arrowprops=dict(arrowstyle="->", color=ORANGE, lw=2.5))
-    ax1.text(-0.95, 0.16, "σ_sl", fontsize=9.5, fontweight='bold', color=ORANGE)
-    # Вектор σ_l (по касательной под углом θ)
+    ax1.text(-0.95, 0.16, "σsl", fontsize=9.2, fontweight='bold', color=ORANGE)
     dx_l = 1.45 * np.cos(theta_rad)
     dy_l = 1.45 * np.sin(theta_rad)
     ax1.annotate("", xy=(dx_l, dy_l), xytext=(0, 0), arrowprops=dict(arrowstyle="->", color=RED, lw=2.5))
-    ax1.text(dx_l + 0.08, dy_l + 0.05, "σ_l", fontsize=9.5, fontweight='bold', color=RED)
-    # Проекция σ_l cos θ
+    ax1.text(dx_l + 0.08, dy_l + 0.05, "σl", fontsize=9.2, fontweight='bold', color=RED)
     ax1.plot([dx_l, dx_l], [0, dy_l], color=RED, ls=':', lw=1.4)
     arc = Wedge((0, 0), 0.55, 0, theta_deg, width=0.04, fc=RED, ec=RED)
     ax1.add_patch(arc)
-    ax1.text(0.68, 0.25, f"θ = {theta_deg:.0f}°", fontsize=8.5, fontweight='bold', color=RED)
+    ax1.text(0.66, 0.24, f"θ = {theta_deg:.0f}°", fontsize=8.2, fontweight='bold', color=RED)
 
-    ax1.text(0.3, 2.1, "Закон Юнга: σ_s = σ_sl + σ_l·cos θ\nФормула Дюпре–Юнга: Wa = σ_l(1 + cos θ)",
-             fontsize=8.0, fontweight='bold', color=NAVY, ha='center', bbox=BBOX)
-    ax1.set_title("а) Механическое равновесие капли", fontsize=9.2, fontweight='bold', color=NAVY)
+    ax1.text(0.3, 2.08, "Закон Юнга: σs = σsl + σl·cos θ\nДюпре–Юнг: Wa = σl(1 + cos θ)",
+             fontsize=7.6, fontweight='bold', color=NAVY, ha='center', bbox=BBOX)
+    ax1.set_title("а) Механическое равновесие капли", fontsize=8.8, fontweight='bold', color=NAVY)
     ax1.set_xticks([])
     ax1.set_yticks([])
 
-    # Правая панель: Аналитические кривые Wa/σ_l и S/σ_l от θ
+    # Правая панель: Аналитические кривые Wa/σl и S/σl от θ
     th = np.linspace(0, 180, 400)
     th_r = np.radians(th)
-    wa_norm = 1.0 + np.cos(th_r)      # Wa / σ_l = 1 + cos θ
-    s_norm = np.cos(th_r) - 1.0       # S / σ_l = (Wa - Wc)/σ_l = cos θ - 1
+    wa_norm = 1.0 + np.cos(th_r)
+    s_norm = np.cos(th_r) - 1.0
 
     ax2.axvspan(0, 90, color='#E0F2FE', alpha=0.55, label='Смачивание (θ < 90°, Wa > Wc/2)')
     ax2.axvspan(90, 180, color='#FEE2E2', alpha=0.55, label='Несмачивание (θ > 90°, Wa < Wc/2)')
     ax2.axhline(0, color=DARK, lw=1.0)
     ax2.axvline(90, color=MUTED, ls='--', lw=1.3)
 
-    ax2.plot(th, wa_norm, color=BLUE, lw=2.5, label='Адгезия Wa / σ_l = 1 + cos θ')
-    ax2.plot(th, s_norm, color=RED, lw=2.5, ls='-.', label='Параметр Гаркинса S / σ_l = cos θ − 1')
+    ax2.plot(th, wa_norm, color=BLUE, lw=2.5, label='Адгезия Wa / σl = 1 + cos θ')
+    ax2.plot(th, s_norm, color=RED, lw=2.5, ls='-.', label='Гаркинс S / σl = cos θ − 1')
 
     ax2.scatter([0, 90, 180], [2.0, 1.0, 0.0], color=BLUE, s=45, zorder=6)
     ax2.scatter([0, 90, 180], [0.0, -1.0, -2.0], color=RED, s=45, zorder=6)
-    ax2.annotate("Полное растекание\n(θ = 0°, S ≥ 0, Wa ≥ Wc)", xy=(0, 0), xytext=(22, -0.55),
-                 fontsize=7.5, fontweight='bold', color=GREEN, bbox=BBOX,
+    ax2.annotate("Полное растекание\n(θ = 0°, S ≥ 0, Wa ≥ Wc)", xy=(0, 0), xytext=(22, -0.58),
+                 fontsize=7.3, fontweight='bold', color=GREEN, bbox=BBOX,
                  arrowprops=dict(arrowstyle="->", color=GREEN, lw=1.4))
 
     ax2.set_xlim(0, 180)
-    ax2.set_ylim(-2.2, 2.3)
+    ax2.set_ylim(-2.2, 2.35)
     ax2.set_xticks([0, 45, 90, 135, 180])
-    ax2.set_xlabel("Краевой угол смачивания θ, град", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax2.set_ylabel("Нормированная энергия (в ед. σ_l)", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax2.set_title("б) Зависимость Wa и S Гаркинса от угла θ", fontsize=9.2, fontweight='bold', color=NAVY)
-    ax2.legend(loc='upper right', fontsize=7.0, framealpha=0.95)
+    ax2.set_xlabel("Краевой угол смачивания θ, град", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax2.set_ylabel("Нормированная энергия (в ед. σl)", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax2.set_title("б) Зависимость Wa и S от угла θ", fontsize=8.8, fontweight='bold', color=NAVY)
+    ax2.legend(loc='upper right', fontsize=6.6, framealpha=0.95)
     ax2.grid(True, ls=':', alpha=0.5)
 
-    fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "fig_06_young_harkins_droplet.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)
 
 
 def fig_07_wetting_engineering_lotus():
-    """Слайд 7: O2-плазменная гидрофилизация для печати Ag-наночернил vs режим Касси–Бакстера (эффект лотоса θ* > 150°)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.3, 4.9), dpi=300)
+    """Слайд 7: O2-плазма (θ: 65° -> 15°), подлинное макрофото эффекта лотоса (W. Barthlott) и закон Касси–Бакстера."""
+    ensure_real_assets()
+    fig = plt.figure(figsize=(7.6, 4.9), dpi=300)
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.0, 1.12], height_ratios=[1.0, 1.0], wspace=0.28, hspace=0.32)
 
-    # Левая панель: O2-плазма снижает θ с 85° до 12°
-    ax1.set_xlim(-2.2, 2.2)
-    ax1.set_ylim(-0.6, 2.2)
-    ax1.add_patch(Rectangle((-2.2, -0.6), 4.4, 0.6, fc='#FDE68A', ec=ORANGE, lw=1.5))
-    ax1.text(0, -0.32, "Полиимидная подложка после O₂-плазмы (−OH, −COOH)", fontsize=7.5, fontweight='bold', color=DARK, ha='center')
+    ax_pl = fig.add_subplot(gs[0, 0])
+    ax_lotus = fig.add_subplot(gs[1, 0])
+    ax_cb = fig.add_subplot(gs[:, 1])
 
-    # До плазмы (пунктир, θ = 85°)
-    th1 = np.radians(82)
-    R1 = 1.15
-    ang1 = np.linspace(np.pi/2 - th1, np.pi/2 + th1, 150)
-    ax1.plot(R1 * np.cos(ang1), -R1 * np.cos(th1) + R1 * np.sin(ang1), color=RED, ls='--', lw=2.0, label='До плазмы: θ = 85° (разрыв дорожки)')
+    # 1. Верх-лево: O2-плазма снижает θ с 65° до 15° (строго по плану и речи лектора)
+    ax_pl.set_xlim(-2.1, 2.1)
+    ax_pl.set_ylim(-0.55, 1.95)
+    ax_pl.add_patch(Rectangle((-2.0, -0.50), 4.0, 0.50, fc='#FDE68A', ec=ORANGE, lw=1.4))
+    ax_pl.text(0, -0.26, "Полиимид + O₂-плазма (−OH, −COOH)", fontsize=6.8, fontweight='bold', color=DARK, ha='center', va='center')
 
-    # После плазмы (сплошная пленка Ag, θ = 12°)
-    x_ag = np.linspace(-1.85, 1.85, 200)
-    y_ag = 0.28 * (1 - (x_ag / 1.85)**2)
-    ax1.fill_between(x_ag, 0, y_ag, color='#38BDF8', alpha=0.75, edgecolor=BLUE, lw=2.2, label='После O₂-плазмы: θ = 12° (S → 0)')
-    for gx in np.linspace(-1.6, 1.6, 9):
-        ax1.text(gx, 0.04, "OH", fontsize=6.5, fontweight='bold', color=GREEN, ha='center')
+    th1 = np.radians(65.0)
+    R1 = 1.05
+    ang1 = np.linspace(np.pi / 2 - th1, np.pi / 2 + th1, 150)
+    ax_pl.plot(R1 * np.cos(ang1), -R1 * np.cos(th1) + R1 * np.sin(ang1), color=RED, ls='--', lw=2.0,
+               label='До плазмы: θ ≈ 65° (разрыв)')
 
-    ax1.text(0, 1.55, "Прививка полярных групп ↑σ_s:\ncos θ ↑ → θ: 85° → 12°\nСплошная дорожка наночернил Ag",
-             fontsize=7.8, fontweight='bold', color=NAVY, ha='center', bbox=BBOX)
-    ax1.set_title("а) Плазменная активация (Печатная электроника)", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax1.legend(loc='lower center', bbox_to_anchor=(0.5, 0.36), fontsize=7.0)
-    ax1.set_xticks([])
-    ax1.set_yticks([])
+    x_ag = np.linspace(-1.75, 1.75, 200)
+    y_ag = 0.24 * (1 - (x_ag / 1.75)**2)
+    ax_pl.fill_between(x_ag, 0, y_ag, color='#38BDF8', alpha=0.75, edgecolor=BLUE, lw=2.0,
+                       label='После O₂-плазмы: θ ≈ 15° (S → 0)')
+    ax_pl.text(0, 1.42, "Рост энергии σs → растекание Ag-чернил",
+               fontsize=6.9, fontweight='bold', color=NAVY, ha='center', bbox=BBOX)
+    ax_pl.set_title("а) Плазменная активация (65° → 15°)", fontsize=8.2, fontweight='bold', color=NAVY, pad=4)
+    ax_pl.legend(loc='center', bbox_to_anchor=(0.5, 0.48), fontsize=6.3, framealpha=0.94)
+    ax_pl.set_xticks([])
+    ax_pl.set_yticks([])
 
-    # Правая панель: Режим Касси-Бакстера (Супергидрофобность)
-    theta_young = 108.0  # гидрофобный фторполимер/воск
+    # 2. Низ-лево: Подлинное фото капли на листе лотоса (W. Barthlott, CC BY-SA)
+    lotus_path = os.path.join(OUT_DIR, "real_lotus_droplet.jpg")
+    if os.path.exists(lotus_path):
+        with Image.open(lotus_path) as im:
+            ax_lotus.imshow(im)
+    ax_lotus.set_title("б) Эффект лотоса (фото W. Barthlott)", fontsize=8.2, fontweight='bold', color=GREEN, pad=4)
+    ax_lotus.text(0.04, 0.14, "Супергидрофобная сфера: θ* > 160°", transform=ax_lotus.transAxes,
+                  fontsize=6.8, fontweight='bold', color='white',
+                  bbox=dict(boxstyle='round,pad=0.2', fc=GREEN, ec='white', alpha=0.88))
+    ax_lotus.set_xticks([])
+    ax_lotus.set_yticks([])
+
+    # 3. Право: Аналитическая кривая Касси-Бакстера
+    theta_young = 108.0
     fs = np.linspace(0.02, 1.0, 300)
     cos_cb = fs * (np.cos(np.radians(theta_young)) + 1.0) - 1.0
     theta_cb = np.degrees(np.arccos(np.clip(cos_cb, -1.0, 1.0)))
 
-    ax2.axhspan(150, 180, color='#DCFCE7', alpha=0.65, label='Супергидрофобная зона (θ* > 150°, эффект лотоса)')
-    ax2.axhline(150, color=GREEN, ls='--', lw=1.5)
-    ax2.plot(fs, theta_cb, color=NAVY, lw=2.6, label='Уравнение Касси–Бакстера:\ncos θ* = f_s(cos θ + 1) − 1')
+    ax_cb.axhspan(150, 180, color='#DCFCE7', alpha=0.65, label='Супергидрофобная зона (θ* > 150°)')
+    ax_cb.axhline(150, color=GREEN, ls='--', lw=1.5)
+    ax_cb.plot(fs, theta_cb, color=NAVY, lw=2.6, label='Касси–Бакстер:\ncos θ* = fs(cos θ + 1) − 1')
 
     fs_op = 0.08
     th_op = float(np.degrees(np.arccos(fs_op * (np.cos(np.radians(theta_young)) + 1.0) - 1.0)))
-    ax2.scatter([fs_op], [th_op], color=RED, s=65, zorder=6)
-    ax2.annotate(f"Наностолбики (f_s = 0.08):\nθ* = {th_op:.1f}° (воздушные карманы 92%)",
-                 xy=(fs_op, th_op), xytext=(0.24, 162),
-                 fontsize=7.6, fontweight='bold', color=RED, bbox=BBOX,
-                 arrowprops=dict(arrowstyle="->", color=RED, lw=1.5))
+    ax_cb.scatter([fs_op], [th_op], color=RED, s=65, zorder=6)
+    ax_cb.annotate(f"Наностолбики (fs = 0.08):\nθ* = {th_op:.1f}° (воздух 92%)",
+                   xy=(fs_op, th_op), xytext=(0.24, 161.5),
+                   fontsize=7.2, fontweight='bold', color=RED, bbox=BBOX,
+                   arrowprops=dict(arrowstyle="->", color=RED, lw=1.5))
 
-    ax2.set_xlim(0, 1.0)
-    ax2.set_ylim(100, 180)
-    ax2.set_xlabel("Доля твердого контакта выступов f_s", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax2.set_ylabel("Кажущийся краевой угол θ*, град", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax2.set_title("б) Закон Касси–Бакстера (Супергидрофобность)", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax2.legend(loc='lower left', fontsize=7.2, framealpha=0.95)
-    ax2.grid(True, ls=':', alpha=0.5)
+    ax_cb.set_xlim(0, 1.0)
+    ax_cb.set_ylim(100, 180)
+    ax_cb.set_xlabel("Доля твердого контакта выступов fs", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax_cb.set_ylabel("Кажущийся краевой угол θ*, град", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax_cb.set_title("в) Закон Касси–Бакстера θ*(fs)", fontsize=8.6, fontweight='bold', color=NAVY)
+    ax_cb.legend(loc='lower left', fontsize=6.8, framealpha=0.95)
+    ax_cb.grid(True, ls=':', alpha=0.5)
 
-    fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "fig_07_wetting_engineering_lotus.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)
 
 
 def fig_09_laplace_pressure_meniscus():
-    """Слайд 9: Аналитическая кривая давления Лапласа ΔP_L(R) = 2σ/R для воды (72.8 МПа при R = 2 нм) и схема менисков."""
+    """Слайд 9: Аналитическая кривая давления Лапласа ΔPL(R) = 2σ/R для воды (72.8 МПа при R = 2 нм)."""
     fig, ax = plt.subplots(figsize=(6.8, 5.0), dpi=300)
 
-    sigma = 72.8e-3  # Н/м (вода при 20 °C)
+    sigma = 72.8e-3
     R_nm = np.linspace(1.0, 50.0, 500)
-    dP_MPa = (2.0 * sigma / (R_nm * 1e-9)) / 1e6  # МПа
+    dP_MPa = (2.0 * sigma / (R_nm * 1e-9)) / 1e6
 
-    ax.plot(R_nm, dP_MPa, color=BLUE, lw=2.8, label='Закон Лапласа: ΔP_L(R) = 2σ / R (вода, σ = 72.8 мН/м)')
+    ax.plot(R_nm, dP_MPa, color=BLUE, lw=2.8, label='Закон Лапласа: ΔPL(R) = 2σ / R (вода, σ = 72.8 мН/м)')
     ax.fill_between(R_nm, 0, dP_MPa, color='#DBEAFE', alpha=0.45)
 
-    # Реперная точка R = 2 нм -> 72.8 МПа (~720 атм)
     r_ref = 2.0
     p_ref = (2.0 * sigma / (r_ref * 1e-9)) / 1e6
     ax.scatter([r_ref], [p_ref], color=RED, s=75, zorder=7)
-    ax.annotate(f"Реперная точка наномасштаба:\nR = {r_ref:.0f} нм → ΔP_L = {p_ref:.1f} МПа (≈ 720 атм!)",
+    ax.annotate(f"Реперная точка наномасштаба:\nR = {r_ref:.0f} нм → ΔPL = {p_ref:.1f} МПа (≈ 720 атм!)",
                 xy=(r_ref, p_ref), xytext=(8.5, 92.0),
-                fontsize=8.5, fontweight='bold', color=RED, bbox=BBOX,
+                fontsize=8.2, fontweight='bold', color=RED, bbox=BBOX,
                 arrowprops=dict(arrowstyle="->", color=RED, lw=1.8))
 
-    # Вторая точка R = 10 нм -> 14.56 МПа
     r_10 = 10.0
     p_10 = (2.0 * sigma / (r_10 * 1e-9)) / 1e6
     ax.scatter([r_10], [p_10], color=NAVY, s=55, zorder=7)
-    ax.annotate(f"R = 10 нм: ΔP_L = {p_10:.1f} МПа (≈ 144 атм)",
-                xy=(r_10, p_10), xytext=(16.0, 32.0),
-                fontsize=8.0, fontweight='bold', color=NAVY, bbox=BBOX,
+    ax.annotate(f"R = 10 нм: ΔPL = {p_10:.1f} МПа (≈ 144 атм)",
+                xy=(r_10, p_10), xytext=(15.5, 31.0),
+                fontsize=7.8, fontweight='bold', color=NAVY, bbox=BBOX,
                 arrowprops=dict(arrowstyle="->", color=NAVY, lw=1.4))
 
-    ax.text(28.0, 62.0,
+    ax.text(22.5, 58.0,
             "Знак кривизны мениска:\n"
-            "• Выпуклая нанокапля (R > 0):\n  ΔP_L > 0 (сжатие ядра до сотен атм)\n"
-            "• Вогнутый мениск в поре (R < 0, θ < 90°):\n  ΔP_L = −2σ·cos θ / r_п < 0\n  (разрежение → капиллярное всасывание)",
-            fontsize=7.8, color=DARK, bbox=dict(boxstyle='round,pad=0.35', fc='#F8FAFC', ec=BLUE, lw=1.3))
+            "• Выпуклая нанокапля (R > 0):\n  ΔPL > 0 (сжатие ядра до сотен атм)\n"
+            "• Вогнутый мениск в поре (R < 0, θ < 90°):\n  ΔPL = −2σ·cos θ / rп < 0\n  (разрежение → капиллярное всасывание)",
+            fontsize=7.5, color=DARK, bbox=dict(boxstyle='round,pad=0.32', fc='#F8FAFC', ec=BLUE, lw=1.3))
 
     ax.set_xlim(1.0, 50.0)
     ax.set_ylim(0, 150.0)
-    ax.set_xlabel("Радиус кривизны поверхности R, нм", fontsize=9.5, fontweight='bold', color=NAVY)
-    ax.set_ylabel("Капиллярное давление Лапласа |ΔP_L|, МПа", fontsize=9.5, fontweight='bold', color=NAVY)
-    ax.set_title("Масштабирование капиллярного давления Лапласа ΔP_L = 2σ/R в наномасштабе",
-                 fontsize=9.8, fontweight='bold', color=NAVY)
-    ax.legend(loc='upper right', fontsize=8.2, framealpha=0.95)
+    ax.set_xlabel("Радиус кривизны поверхности R, нм", fontsize=9.2, fontweight='bold', color=NAVY)
+    ax.set_ylabel("Капиллярное давление Лапласа |ΔPL|, МПа", fontsize=9.2, fontweight='bold', color=NAVY)
+    ax.set_title("Масштабирование капиллярного давления Лапласа ΔPL = 2σ/R в наномасштабе",
+                 fontsize=9.4, fontweight='bold', color=NAVY)
+    ax.legend(loc='upper right', fontsize=8.0, framealpha=0.95)
     ax.grid(True, ls=':', alpha=0.55)
 
     fig.tight_layout()
@@ -384,17 +432,16 @@ def fig_09_laplace_pressure_meniscus():
 
 def fig_10_kelvin_ostwald_ripening():
     """Слайд 10: Аналитические ветви уравнения Кельвина P(r)/P∞ и схема созревания Оствальда (r1 -> r2)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.3, 4.9), dpi=300)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 4.9), dpi=300, gridspec_kw={'wspace': 0.24})
 
-    # Левая панель: Точный график уравнения Кельвина (вода при 293 К, l_K = 2σVm/RT ≈ 1.076 нм)
-    l_K = 1.076  # нм
+    l_K = 1.076
     r = np.linspace(0.8, 20.0, 400)
-    p_convex = np.exp(+l_K / r)   # Выпуклая нанокапля / наночастица (Оствальд-Фрейндлих)
-    p_concave = np.exp(-l_K / r)  # Вогнутый мениск в нанопоре (конденсация)
+    p_convex = np.exp(+l_K / r)
+    p_concave = np.exp(-l_K / r)
 
-    ax1.axhline(1.0, color=DARK, ls='--', lw=1.3, label='Плоская поверхность (r → ∞, P/P∞ = 1)')
-    ax1.plot(r, p_convex, color=RED, lw=2.6, label='Выпуклая наночастица (r > 0): exp(+2σVm/rRT)')
-    ax1.plot(r, p_concave, color=BLUE, lw=2.6, label='Вогнутый мениск поры (r < 0): exp(−2σVm/rRT)')
+    ax1.axhline(1.0, color=DARK, ls='--', lw=1.3, label='Плоская граница (r → ∞, P/P∞ = 1)')
+    ax1.plot(r, p_convex, color=RED, lw=2.6, label='Выпуклая частица (r > 0): exp(+2σVm/rRT)')
+    ax1.plot(r, p_concave, color=BLUE, lw=2.6, label='Вогнутый мениск (r < 0): exp(−2σVm/rRT)')
     ax1.fill_between(r, 1.0, p_convex, color='#FEE2E2', alpha=0.45)
     ax1.fill_between(r, p_concave, 1.0, color='#DBEAFE', alpha=0.45)
 
@@ -402,60 +449,58 @@ def fig_10_kelvin_ostwald_ripening():
     p_pt = float(np.exp(l_K / r_pt))
     ax1.scatter([r_pt], [p_pt], color=RED, s=55, zorder=6)
     ax1.annotate(f"r = {r_pt} нм:\nP/P∞ = {p_pt:.2f} (+105%!)",
-                 xy=(r_pt, p_pt), xytext=(4.5, 2.45),
-                 fontsize=7.8, fontweight='bold', color=RED, bbox=BBOX,
+                 xy=(r_pt, p_pt), xytext=(4.8, 2.38),
+                 fontsize=7.5, fontweight='bold', color=RED, bbox=BBOX,
                  arrowprops=dict(arrowstyle="->", color=RED, lw=1.5))
 
     r_c = 1.5
     p_c = float(np.exp(-l_K / r_c))
     ax1.scatter([r_c], [p_c], color=BLUE, s=55, zorder=6)
-    ax1.annotate(f"Нанопора r = {r_c} нм:\nКонденсация при P/P∞ = {p_c:.2f}",
-                 xy=(r_c, p_c), xytext=(4.5, 0.25),
-                 fontsize=7.8, fontweight='bold', color=BLUE, bbox=BBOX,
+    ax1.annotate(f"Пора r = {r_c} нм:\nP/P∞ = {p_c:.2f}",
+                 xy=(r_c, p_c), xytext=(4.8, 0.22),
+                 fontsize=7.5, fontweight='bold', color=BLUE, bbox=BBOX,
                  arrowprops=dict(arrowstyle="->", color=BLUE, lw=1.5))
 
     ax1.set_xlim(0.8, 20.0)
-    ax1.set_ylim(0.0, 3.3)
-    ax1.set_xlabel("Радиус кривизны частицы / поры r, нм", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax1.set_ylabel("Отношение давлений (растворимостей) P(r) / P∞", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax1.set_title("а) Закон Кельвина (Оствальда–Фрейндлиха)", fontsize=9.0, fontweight='bold', color=NAVY)
-    ax1.legend(loc='upper right', fontsize=6.8, framealpha=0.95)
+    ax1.set_ylim(0.0, 3.35)
+    ax1.set_xlabel("Радиус кривизны частицы / поры r, нм", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax1.set_ylabel("Отношение давлений (растворимостей) P(r) / P∞", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax1.set_title("а) Закон Кельвина (Оствальда–Фрейндлиха)", fontsize=8.6, fontweight='bold', color=NAVY)
+    ax1.legend(loc='upper right', fontsize=6.4, framealpha=0.95)
     ax1.grid(True, ls=':', alpha=0.5)
 
-    # Правая панель: Схема созревания Оствальда
-    ax2.set_xlim(0, 6)
-    ax2.set_ylim(0, 6)
-    ax2.add_patch(FancyBboxPatch((0.2, 0.2), 5.6, 5.6, boxstyle="round,pad=0.1", fc='#F8FAFC', ec='#CBD5E1', lw=1.5))
+    # Правая панель: Схема созревания Оствальда (без наложений текста на окружности и рамку)
+    ax2.set_xlim(0, 6.4)
+    ax2.set_ylim(0, 6.4)
+    ax2.add_patch(FancyBboxPatch((0.15, 0.15), 6.1, 6.1, boxstyle="round,pad=0.08", fc='#F8FAFC', ec='#CBD5E1', lw=1.4))
 
-    # Малая растворяющаяся частица r1
-    c_small_old = Circle((1.4, 3.3), 0.72, fc='none', ec=RED, ls='--', lw=1.8)
-    c_small = Circle((1.4, 3.3), 0.42, fc=RED, ec='white', lw=1.5, alpha=0.9)
+    c_small_old = Circle((1.45, 3.45), 0.68, fc='none', ec=RED, ls='--', lw=1.8)
+    c_small = Circle((1.45, 3.45), 0.40, fc=RED, ec='white', lw=1.5, alpha=0.9)
     ax2.add_patch(c_small_old)
     ax2.add_patch(c_small)
-    ax2.text(1.4, 3.3, "r₁", color='white', fontsize=9.0, fontweight='bold', ha='center', va='center')
-    ax2.text(1.4, 4.45, "Малая КТ (r₁ = 1.5 нм)\nμ(r₁) > μ_р-ра → РАСТВОРЕНИЕ", fontsize=7.5, fontweight='bold', color=RED, ha='center', bbox=BBOX)
+    ax2.text(1.45, 3.45, "r₁", color='white', fontsize=8.8, fontweight='bold', ha='center', va='center')
+    ax2.text(2.15, 4.65, "Малая КТ (r₁ = 1.5 нм)\nμ(r₁) > μр-ра → растворение",
+             fontsize=6.5, fontweight='bold', color=RED, ha='center', bbox=BBOX)
 
-    # Крупная растущая частица r2
-    c_big_new = Circle((4.4, 3.3), 1.25, fc='#BFDBFE', ec=BLUE, ls='--', lw=1.8, alpha=0.5)
-    c_big = Circle((4.4, 3.3), 0.98, fc=BLUE, ec='white', lw=1.8, alpha=0.9)
+    c_big_new = Circle((4.65, 3.45), 1.15, fc='#BFDBFE', ec=BLUE, ls='--', lw=1.8, alpha=0.5)
+    c_big = Circle((4.65, 3.45), 0.90, fc=BLUE, ec='white', lw=1.8, alpha=0.9)
     ax2.add_patch(c_big_new)
     ax2.add_patch(c_big)
-    ax2.text(4.4, 3.3, "r₂ ≫ r₁", color='white', fontsize=9.5, fontweight='bold', ha='center', va='center')
-    ax2.text(4.4, 5.05, "Крупная КТ (r₂ = 6.0 нм)\nμ(r₂) < μ_р-ра → РОСТ", fontsize=7.5, fontweight='bold', color=BLUE, ha='center', bbox=BBOX)
+    ax2.text(4.65, 3.45, "r₂ ≫ r₁", color='white', fontsize=9.0, fontweight='bold', ha='center', va='center')
+    ax2.text(4.50, 5.25, "Крупная КТ (r₂ = 6 нм)\nμ(r₂) < μр-ра → РОСТ",
+             fontsize=6.8, fontweight='bold', color=BLUE, ha='center', bbox=BBOX)
 
-    # Стрелки диффузионного потока мономеров J
-    for y_arr in [2.9, 3.3, 3.7]:
-        ax2.annotate("", xy=(3.15, y_arr), xytext=(2.2, y_arr),
+    for y_arr in [3.10, 3.45, 3.80]:
+        ax2.annotate("", xy=(3.35, y_arr), xytext=(2.25, y_arr),
                      arrowprops=dict(arrowstyle="->", color=ORANGE, lw=2.2))
-    ax2.text(2.68, 2.25, "Диффузионный поток\nмономеров J (∇μ)", fontsize=7.8, fontweight='bold', color=ORANGE, ha='center')
+    ax2.text(2.80, 1.98, "Поток мономеров J (∇μ)", fontsize=7.0, fontweight='bold', color=ORANGE, ha='center', bbox=BBOX)
 
-    ax2.text(3.0, 0.85, "Следствие: размытие размеров Δr ↑,\nкрасный сдвиг спектра и потеря монодисперсности КТ",
-             fontsize=7.6, fontweight='bold', color=DARK, ha='center', bbox=BBOX)
-    ax2.set_title("б) Механизм созревания Оствальда", fontsize=9.0, fontweight='bold', color=NAVY)
+    ax2.text(3.20, 0.85, "Следствие созревания Оствальда:\nрост дисперсии Δr ↑ и уширение спектра КТ",
+             fontsize=6.4, fontweight='bold', color=DARK, ha='center', bbox=BBOX)
+    ax2.set_title("б) Механизм созревания Оствальда", fontsize=8.6, fontweight='bold', color=NAVY)
     ax2.set_xticks([])
     ax2.set_yticks([])
 
-    fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "fig_10_kelvin_ostwald_ripening.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)
 
@@ -465,39 +510,38 @@ def fig_11_capillary_condensation():
     fig, ax = plt.subplots(figsize=(6.8, 5.0), dpi=300)
 
     x = np.linspace(0.01, 0.99, 500)
-    # Базовая полимолекулярная сорбция + капиллярный скачок
     base = 140 * (18 * x) / ((1 - 0.35 * x) * (1 + 17 * x))
     v_ads = base + 380 / (1 + np.exp(-(x - 0.72) / 0.022))
     v_des = base + 380 / (1 + np.exp(-(x - 0.56) / 0.018))
 
-    ax.plot(x, v_ads, color=BLUE, lw=2.8, label='Ветвь адсорбции (цилиндрическая пленка, кривизна 1/r_c)')
-    ax.plot(x, v_des, color=RED, lw=2.8, ls='--', label='Ветвь десорбции (полусферический мениск, кривизна 2/r_c)')
+    ax.plot(x, v_ads, color=BLUE, lw=2.8, label='Ветвь адсорбции (цилиндрическая пленка, кривизна 1/rc)')
+    ax.plot(x, v_des, color=RED, lw=2.8, ls='--', label='Ветвь десорбции (полусферический мениск, кривизна 2/rc)')
     ax.fill_between(x, v_ads, v_des, where=(v_des > v_ads), color='#FDE68A', alpha=0.55,
                     label='Петля капиллярного гистерезиса (ИЮПАК тип IV, H1)')
 
-    # Точки конденсации и испарения
     x_cond, y_cond = 0.72, float(140 * (18 * 0.72) / ((1 - 0.35 * 0.72) * (1 + 17 * 0.72)) + 190)
     x_evap, y_evap = 0.56, float(140 * (18 * 0.56) / ((1 - 0.35 * 0.56) * (1 + 17 * 0.56)) + 190)
     ax.scatter([x_cond], [y_cond], color=BLUE, s=65, zorder=7)
     ax.scatter([x_evap], [y_evap], color=RED, s=65, zorder=7)
 
-    ax.annotate("Конденсация с цилиндра:\nln(P_а/P₀) = −σVm / (r_c RT)",
-                xy=(x_cond, y_cond), xytext=(0.48, 225),
-                fontsize=8.0, fontweight='bold', color=BLUE, bbox=BBOX,
+    # Размещаем подпись адсорбции справа-внизу от кривой без пересечения с петлей
+    ax.annotate("Конденсация с цилиндра:\nln(Pа/P₀) = −σVm / (rc·RT)",
+                xy=(x_cond, y_cond), xytext=(0.56, 120),
+                fontsize=7.8, fontweight='bold', color=BLUE, bbox=BBOX,
                 arrowprops=dict(arrowstyle="->", color=BLUE, lw=1.6))
 
-    ax.annotate("Испарение с полусферы:\nln(P_д/P₀) = −2σVm / (r_c RT)\n(кривизна в 2 раза выше → P_д < P_а)",
-                xy=(x_evap, y_evap), xytext=(0.06, 395),
-                fontsize=8.0, fontweight='bold', color=RED, bbox=BBOX,
+    ax.annotate("Испарение с полусферы:\nln(Pд/P₀) = −2σVm / (rc·RT)\n(кривизна вдвое выше → Pд < Pа)",
+                xy=(x_evap, y_evap), xytext=(0.05, 395),
+                fontsize=7.8, fontweight='bold', color=RED, bbox=BBOX,
                 arrowprops=dict(arrowstyle="->", color=RED, lw=1.6))
 
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(0, 620)
-    ax.set_xlabel("Относительное давление пара P / P₀", fontsize=9.5, fontweight='bold', color=NAVY)
-    ax.set_ylabel("Объем сорбированного азота V, см³/г (НТУ)", fontsize=9.5, fontweight='bold', color=NAVY)
+    ax.set_xlabel("Относительное давление пара P / P₀", fontsize=9.2, fontweight='bold', color=NAVY)
+    ax.set_ylabel("Объем сорбированного азота V, см³/г (НТУ)", fontsize=9.2, fontweight='bold', color=NAVY)
     ax.set_title("Капиллярная конденсация и петля гистерезиса в мезопористом кремнеземе SBA-15",
-                 fontsize=9.5, fontweight='bold', color=NAVY)
-    ax.legend(loc='lower right', fontsize=7.6, framealpha=0.95)
+                 fontsize=9.2, fontweight='bold', color=NAVY)
+    ax.legend(loc='lower right', fontsize=7.4, framealpha=0.95)
     ax.grid(True, ls=':', alpha=0.55)
 
     fig.tight_layout()
@@ -506,57 +550,54 @@ def fig_11_capillary_condensation():
 
 
 def fig_12_qd_quenching_bjh():
-    """Слайд 12: Подавление созревания Оствальда термошоком (300 -> 220 °C) при синтезе КТ и распределение пор по размерам BJH."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.3, 4.9), dpi=300)
+    """Слайд 12: Подавление созревания Оствальда термошоком (300 -> 220 °C) и распределение пор по размерам BJH."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.8, 4.9), dpi=300, gridspec_kw={'wspace': 0.30})
 
-    # Левая панель: Профиль термошока LaMer / Hot-Injection
     t = np.linspace(0, 12, 400)
     T_quench = np.where(t < 2.0, 300.0, 220.0 + 80.0 * np.exp(-(t - 2.0) / 0.45))
     T_no_quench = np.where(t < 2.0, 300.0, 295.0 - 1.5 * (t - 2.0))
 
-    ax1.plot(t, T_no_quench, color=RED, ls='--', lw=2.2, label='Без закалки (300 °C): созревание Оствальда (σ_r > 22%)')
-    ax1.plot(t, T_quench, color=GREEN, lw=2.8, label='Термошок (300 → 220 °C) + ПАВ: монодисперсные КТ (σ_r < 5%)')
-    ax1.axvspan(1.8, 2.6, color='#FEF3C7', alpha=0.75, label='Впрыск прекурсора (взрывная нуклеация)')
-    ax1.scatter([2.0], [300.0], color=ORANGE, s=65, zorder=7)
-    ax1.annotate("Точка горячего впрыска\n(T = 300 °C)", xy=(2.0, 300.0), xytext=(3.6, 304.0),
-                 fontsize=7.8, fontweight='bold', color=ORANGE, bbox=BBOX,
+    ax1.plot(t, T_no_quench, color=RED, ls='--', lw=2.2, label='Без закалки: созревание (σr > 20%)')
+    ax1.plot(t, T_quench, color=GREEN, lw=2.8, label='Термошок (300→220 °C): σr < 5%')
+    ax1.axvspan(1.8, 2.5, color='#FEF3C7', alpha=0.75, label='Горячий впрыск (нуклеация)')
+    ax1.scatter([2.0], [300.0], color=ORANGE, s=60, zorder=7)
+    ax1.annotate("Горячий впрыск\n(T = 300 °C)", xy=(2.0, 300.0), xytext=(3.6, 303.0),
+                 fontsize=7.3, fontweight='bold', color=ORANGE, bbox=BBOX,
                  arrowprops=dict(arrowstyle="->", color=ORANGE, lw=1.5))
-    ax1.annotate("Кинетическая заморозка\nи пассивация олеиновой кислотой", xy=(4.0, 221.0), xytext=(3.5, 248.0),
-                 fontsize=7.8, fontweight='bold', color=GREEN, bbox=BBOX,
+    ax1.annotate("Заморозка диффузии\nи пассивация ПАВ", xy=(3.8, 221.5), xytext=(3.8, 248.0),
+                 fontsize=7.3, fontweight='bold', color=GREEN, bbox=BBOX,
                  arrowprops=dict(arrowstyle="->", color=GREEN, lw=1.5))
 
     ax1.set_xlim(0, 12)
-    ax1.set_ylim(200, 325)
-    ax1.set_xlabel("Время синтеза квантовых точек CdSe t, мин", fontsize=8.6, fontweight='bold', color=NAVY)
-    ax1.set_ylabel("Температура реактора T, °C", fontsize=8.6, fontweight='bold', color=NAVY)
-    ax1.set_title("а) Подавление созревания Оствальда (Термошок)", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax1.legend(loc='lower left', fontsize=6.8, framealpha=0.95)
+    ax1.set_ylim(200, 326)
+    ax1.set_xlabel("Время синтеза КТ CdSe t, мин", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax1.set_ylabel("Температура реактора T, °C", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax1.set_title("а) Термошок при синтезе КТ", fontsize=8.6, fontweight='bold', color=NAVY)
+    ax1.legend(loc='lower left', fontsize=6.4, framealpha=0.95)
     ax1.grid(True, ls=':', alpha=0.5)
 
-    # Правая панель: Кривая распределения мезопор по размерам методом BJH (r_p = r_K + t)
     D_nm = np.linspace(2.0, 20.0, 400)
     psd_sba = 1.85 * np.exp(-((D_nm - 8.2) / 0.95)**2)
     psd_gel = 0.65 * np.exp(-((D_nm - 11.5) / 3.8)**2)
 
-    ax2.plot(D_nm, psd_sba, color=BLUE, lw=2.8, label='Упорядоченный кремнезем SBA-15 (D_пик = 8.2 нм)')
+    ax2.plot(D_nm, psd_sba, color=BLUE, lw=2.8, label='Кремнезем SBA-15 (Dпик = 8.2 нм)')
     ax2.fill_between(D_nm, 0, psd_sba, color='#DBEAFE', alpha=0.55)
-    ax2.plot(D_nm, psd_gel, color=MUTED, ls='-.', lw=2.0, label='Аморфный силикагель (широкое распределение пор)')
+    ax2.plot(D_nm, psd_gel, color=MUTED, ls='-.', lw=2.0, label='Аморфный силикагель (широкий спектр)')
 
     ax2.scatter([8.2], [1.85], color=RED, s=60, zorder=7)
-    ax2.annotate("Узкий пик мезопор SBA-15:\nD_п = 2(r_K + t) = 8.2 ± 0.6 нм",
-                 xy=(8.2, 1.85), xytext=(10.2, 1.48),
-                 fontsize=7.8, fontweight='bold', color=BLUE, bbox=BBOX,
+    ax2.annotate("Пик мезопор SBA-15:\nDп = 2(rK + t) ≈ 8.2 нм",
+                 xy=(8.2, 1.85), xytext=(9.6, 1.34),
+                 fontsize=7.0, fontweight='bold', color=BLUE, bbox=BBOX,
                  arrowprops=dict(arrowstyle="->", color=BLUE, lw=1.5))
 
     ax2.set_xlim(2.0, 20.0)
-    ax2.set_ylim(0, 2.15)
-    ax2.set_xlabel("Диаметр пор D_п = 2(r_K + t), нм", fontsize=8.6, fontweight='bold', color=NAVY)
-    ax2.set_ylabel("Дифференциальный объем dV / d log D, см³/г", fontsize=8.6, fontweight='bold', color=NAVY)
-    ax2.set_title("б) Порометрия BJH (Баррета–Джойнера–Халенды)", fontsize=8.8, fontweight='bold', color=NAVY)
-    ax2.legend(loc='upper right', fontsize=6.8, framealpha=0.95)
+    ax2.set_ylim(0, 2.20)
+    ax2.set_xlabel("Диаметр пор Dп = 2(rK + t), нм", fontsize=8.4, fontweight='bold', color=NAVY)
+    ax2.set_ylabel("Дифференциальный объем dV / d log D, см³/г", fontsize=8.2, fontweight='bold', color=NAVY)
+    ax2.set_title("б) Порометрия BJH (десорбция N₂)", fontsize=8.6, fontweight='bold', color=NAVY)
+    ax2.legend(loc='upper right', fontsize=6.4, framealpha=0.95)
     ax2.grid(True, ls=':', alpha=0.5)
 
-    fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "fig_12_qd_quenching_bjh.png"), dpi=300, bbox_inches='tight', facecolor='white')
     plt.close(fig)
 
@@ -571,4 +612,4 @@ if __name__ == "__main__":
     fig_10_kelvin_ostwald_ripening()
     fig_11_capillary_condensation()
     fig_12_qd_quenching_bjh()
-    print("Part 1 figures (Slides 2-12) generated successfully.")
+    print("Part 1 figures (Slides 2-12) regenerated cleanly.")

@@ -73,11 +73,11 @@ class ScientificDeckBuilder:
         tf.margin_top = tf.margin_bottom = tf.margin_left = tf.margin_right = 0
 
         p = tf.paragraphs[0]
-        p.text = title_text
-        p.font.name = FONT_HEADING
-        p.font.size = Pt(17.5) if len(title_text) > 54 else Pt(19.0)
-        p.font.bold = True
-        p.font.color.rgb = SUAI_NAVY
+        title_pt = 17.5 if len(title_text) > 54 else 19.0
+        format_para_with_r3(p, title_text, font_size=title_pt, color=SUAI_NAVY, bold_prefix_color=SUAI_NAVY)
+        for r in p.runs:
+            r.font.name = FONT_HEADING
+            r.font.bold = True
         p.space_after = Pt(1)
 
         if subtitle_text:
@@ -97,9 +97,9 @@ class ScientificDeckBuilder:
         card.line.width = Pt(1.0)
         card.adjustments[0] = 0.02
 
-        cap_h = 0.34 if caption else 0.06
+        cap_h = 0.38 if caption else 0.06
         avail_w = w - 0.16
-        avail_h = h - cap_h - 0.12
+        avail_h = h - cap_h - 0.10
 
         if os.path.exists(img_path):
             from PIL import Image as PILImage
@@ -117,13 +117,14 @@ class ScientificDeckBuilder:
             slide.shapes.add_picture(img_path, Inches(px), Inches(py), width=Inches(pic_w), height=Inches(pic_h))
 
         if caption:
-            tb_c = slide.shapes.add_textbox(Inches(x + 0.10), Inches(y + h - 0.32), Inches(w - 0.20), Inches(0.28))
+            tb_c = slide.shapes.add_textbox(Inches(x + 0.08), Inches(y + h - 0.36), Inches(w - 0.16), Inches(0.32))
             tf_c = tb_c.text_frame
             tf_c.word_wrap = True
+            tf_c.vertical_anchor = MSO_ANCHOR.MIDDLE
             tf_c.margin_top = tf_c.margin_bottom = tf_c.margin_left = tf_c.margin_right = 0
             pc = tf_c.paragraphs[0]
             pc.alignment = PP_ALIGN.CENTER
-            format_para_with_r3(pc, caption, font_size=9.5, color=TEXT_MUTED, bold_prefix_color=SUAI_NAVY)
+            format_para_with_r3(pc, caption, font_size=9.0, color=TEXT_MUTED, bold_prefix_color=SUAI_NAVY)
 
     def add_takeaway_banner(self, slide, text: str, y: float = 6.22, h: float = 0.56):
         box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.55), Inches(y), Inches(12.233), Inches(h))
@@ -161,7 +162,7 @@ class ScientificDeckBuilder:
 
 
 FIG_DIR = os.path.abspath("course_materials/semester_4/lectures/figures_l04")
-LOGO_PATH = find_asset("guap_image3.png") or os.path.abspath("assets/logos/suai_logo.png")
+LOGO_PATH = find_asset("guap_image4.png") or find_asset("guap_logo_extracted.png")
 SPEECH_MD_PATH = os.path.abspath("course_materials/semester_4/lectures/lecture_04_speech.md")
 OUT_PPTX = os.path.abspath("course_materials/semester_4/lectures/lecture_04_surface_growth.pptx")
 OUT_PPTX_ALT = os.path.abspath("course_materials/semester_4/lectures/lecture_04_surface_films.pptx")
@@ -169,6 +170,7 @@ OUT_PPTX_ALT = os.path.abspath("course_materials/semester_4/lectures/lecture_04_
 ABBREV_RX = re.compile(
     r'\b(СЭМ|ПЭМ|АСМ|МЛЭ|ДБЭО|RHEED|HEMT|ДЭГ|КТ|БЭТ|BJH|ИЮПАК|IUPAC|ПАВ|FM|VW|SK)\b'
 )
+SUBSCRIPT_RX = re.compile(r'_(?:\{([^}]+)\}|([A-Za-zА-Яа-яЁё0-9∞⊥∥,−+-]+))')
 
 
 def parse_speech_notes(md_path: str) -> dict:
@@ -292,30 +294,45 @@ def draw_l4_problem_icon(slide, x: float, y: float, size: float, problem_id: str
             mol.line.fill.background()
 
 
-def format_para_with_r3(para, text: str, font_size: int = 13, color: RGBColor = TEXT_DARK, bold_prefix_color: RGBColor = SUAI_NAVY):
-    """Форматирование абзаца с автоматической подсветкой префикса до двоеточия и аббревиатур R3 (#005AAA bold)."""
-    para.text = ""
-    if ":" in text:
-        prefix, rest = text.split(":", 1)
-        r_pre = para.add_run()
-        r_pre.text = prefix + ":"
-        r_pre.font.name = FONT_HEADING
-        r_pre.font.size = Pt(font_size)
-        r_pre.font.bold = True
-        r_pre.font.color.rgb = bold_prefix_color
-        target_str = rest
-    else:
-        target_str = text
+def _emit_segment_with_subscripts(para, segment: str, font_name: str, font_size: float,
+                                  bold: bool, color: RGBColor):
+    """Разбивает строковый сегмент на обычные ранги и нижние индексы (без сырых символов '_' и '{}')."""
+    if not segment:
+        return
+    last_s = 0
+    for sm in SUBSCRIPT_RX.finditer(segment):
+        if sm.start() > last_s:
+            r = para.add_run()
+            r.text = segment[last_s:sm.start()]
+            r.font.name = font_name
+            r.font.size = Pt(font_size)
+            r.font.bold = bold
+            r.font.color.rgb = color
+        sub_txt = sm.group(1) if sm.group(1) is not None else sm.group(2)
+        r_sub = para.add_run()
+        r_sub.text = sub_txt
+        r_sub.font.name = font_name
+        r_sub.font.size = Pt(font_size)
+        r_sub.font.bold = bold
+        r_sub.font.color.rgb = color
+        r_sub._r.get_or_add_rPr().set("baseline", "-25000")
+        last_s = sm.end()
+    if last_s < len(segment):
+        r = para.add_run()
+        r.text = segment[last_s:]
+        r.font.name = font_name
+        r.font.size = Pt(font_size)
+        r.font.bold = bold
+        r.font.color.rgb = color
 
+
+def _emit_text_with_r3_and_subscripts(para, text_str: str, font_name: str, font_size: float,
+                                      bold: bool, color: RGBColor):
+    """Форматирует строку с выделением аббревиатур R3 (#005AAA bold) и нижних индексов."""
     last_idx = 0
-    for m in ABBREV_RX.finditer(target_str):
+    for m in ABBREV_RX.finditer(text_str):
         if m.start() > last_idx:
-            r_norm = para.add_run()
-            r_norm.text = target_str[last_idx:m.start()]
-            r_norm.font.name = FONT_BODY
-            r_norm.font.size = Pt(font_size)
-            r_norm.font.bold = False
-            r_norm.font.color.rgb = color
+            _emit_segment_with_subscripts(para, text_str[last_idx:m.start()], font_name, font_size, bold, color)
         r_abb = para.add_run()
         r_abb.text = m.group(0)
         r_abb.font.name = FONT_HEADING
@@ -323,14 +340,25 @@ def format_para_with_r3(para, text: str, font_size: int = 13, color: RGBColor = 
         r_abb.font.bold = True
         r_abb.font.color.rgb = SUAI_BLUE
         last_idx = m.end()
+    if last_idx < len(text_str):
+        _emit_segment_with_subscripts(para, text_str[last_idx:], font_name, font_size, bold, color)
 
-    if last_idx < len(target_str):
-        r_tail = para.add_run()
-        r_tail.text = target_str[last_idx:]
-        r_tail.font.name = FONT_BODY
-        r_tail.font.size = Pt(font_size)
-        r_tail.font.bold = False
-        r_tail.font.color.rgb = color
+
+def format_para_with_r3(para, text: str, font_size: float = 13, color: RGBColor = TEXT_DARK,
+                        bold_prefix_color: RGBColor = SUAI_NAVY):
+    """Форматирование абзаца с умной подсветкой короткого префикса до ':', нижних индексов и аббревиатур R3."""
+    para.text = ""
+    if ":" in text:
+        prefix, rest = text.split(":", 1)
+        if rest.strip() and len(prefix) <= 54 and prefix.count("(") == prefix.count(")"):
+            _emit_text_with_r3_and_subscripts(para, prefix + ":", FONT_HEADING, font_size, True, bold_prefix_color)
+            target_str = rest
+        else:
+            target_str = text
+    else:
+        target_str = text
+
+    _emit_text_with_r3_and_subscripts(para, target_str, FONT_BODY, font_size, False, color)
 
 
 def add_r3_card(builder: ScientificDeckBuilder, slide, x: float, y: float, w: float, h: float,
@@ -429,24 +457,30 @@ def add_section_divider_l4(builder: ScientificDeckBuilder, sec_label: str, title
     p_prob.font.bold = False
     p_prob.font.color.rgb = CARD_WHITE
 
-    # Навигационная плашка (y = 5.20..5.72)
-    pill_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.8), Inches(5.20), Inches(9.733), Inches(0.50))
-    pill_box.fill.solid()
-    pill_box.fill.fore_color.rgb = RGBColor(0x04, 0x22, 0x48)
-    pill_box.line.color.rgb = RGBColor(0x38, 0xBD, 0xF8)
-    pill_box.line.width = Pt(1.0)
-    pill_box.adjustments[0] = 0.25
-
-    tb_pl = slide.shapes.add_textbox(Inches(2.0), Inches(5.27), Inches(9.333), Inches(0.36))
-    tf_pl = tb_pl.text_frame
-    tf_pl.word_wrap = True
-    p_pl = tf_pl.paragraphs[0]
-    p_pl.text = "Маршрут раздела:  " + pills
-    p_pl.alignment = PP_ALIGN.CENTER
-    p_pl.font.name = FONT_HEADING
-    p_pl.font.size = Pt(13)
-    p_pl.font.bold = True
-    p_pl.font.color.rgb = SUAI_CYAN
+    # Навигационные плашки этапов (4 отдельные плашки в ряд без переполнения границ, y = 5.16..5.72)
+    pill_items = [s.strip() for s in re.split(r'\s+→\s+', pills) if s.strip()]
+    n_p = max(1, len(pill_items))
+    gap_p = 0.22
+    total_pw = 11.433
+    w_p = (total_pw - gap_p * (n_p - 1)) / n_p
+    x0_p = (13.333 - total_pw) / 2.0
+    for idx_p, p_item in enumerate(pill_items):
+        px = x0_p + idx_p * (w_p + gap_p)
+        pill_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(px), Inches(5.16), Inches(w_p), Inches(0.54))
+        pill_box.fill.solid()
+        pill_box.fill.fore_color.rgb = RGBColor(0x04, 0x22, 0x48)
+        pill_box.line.color.rgb = RGBColor(0x38, 0xBD, 0xF8)
+        pill_box.line.width = Pt(1.2)
+        pill_box.adjustments[0] = 0.22
+        tf_pl = pill_box.text_frame
+        tf_pl.word_wrap = True
+        tf_pl.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf_pl.margin_left = tf_pl.margin_right = Inches(0.08)
+        tf_pl.margin_top = tf_pl.margin_bottom = Inches(0.04)
+        p_pl = tf_pl.paragraphs[0]
+        p_pl.alignment = PP_ALIGN.CENTER
+        step_str = f"{idx_p + 1}. {p_item}"
+        _emit_segment_with_subscripts(p_pl, step_str, FONT_HEADING, 11.0, True, SUAI_CYAN)
 
     # Нижний вывод (y = 6.00..6.55)
     tb_tk = slide.shapes.add_textbox(Inches(1.3), Inches(6.00), Inches(10.733), Inches(0.50))
@@ -490,9 +524,9 @@ def build_deck():
     stripe.line.fill.background()
 
     if os.path.exists(LOGO_PATH):
-        s1.shapes.add_picture(LOGO_PATH, Inches(0.65), Inches(0.42), height=Inches(0.82))
+        s1.shapes.add_picture(LOGO_PATH, Inches(0.65), Inches(0.46), height=Inches(0.58))
 
-    tb_uni = s1.shapes.add_textbox(Inches(2.55), Inches(0.42), Inches(10.1), Inches(0.82))
+    tb_uni = s1.shapes.add_textbox(Inches(2.95), Inches(0.42), Inches(9.73), Inches(0.82))
     tf_uni = tb_uni.text_frame
     tf_uni.word_wrap = True
     p_u1 = tf_uni.paragraphs[0]
@@ -520,7 +554,7 @@ def build_deck():
     tf_h = tb_h.text_frame
     tf_h.word_wrap = True
     p_h0 = tf_h.paragraphs[0]
-    p_h0.text = "ЛЕКЦИЯ №4   •   РАЗДЕЛ 1 «ПОВЕРХНОСТНЫЕ ЯВЛЕНИЯ В НАНОСИСТЕМАХ»"
+    p_h0.text = "ЛЕКЦИЯ №4   •   РАЗДЕЛ 2 «ОСОБЕННОСТИ ТЕРМОДИНАМИКИ НАНОСТРУКТУР» (ЧАСТЬ 3 ИЗ 4)"
     p_h0.font.name = FONT_HEADING
     p_h0.font.size = Pt(13)
     p_h0.font.bold = True
@@ -536,9 +570,9 @@ def build_deck():
     p_h1.space_after = Pt(8)
 
     p_h2 = tf_h.add_paragraph()
-    p_h2.text = "От межфазной энергии Гиббса и капиллярности Лапласа – Кельвина к гетероэпитаксии и метрологии БЭТ"
+    p_h2.text = "От межфазной энергии Гиббса и капиллярности Лапласа – Кельвина к гетероэпитаксии и методу Брунауэра – Эммета – Теллера (БЭТ)"
     p_h2.font.name = FONT_BODY
-    p_h2.font.size = Pt(15)
+    p_h2.font.size = Pt(14.5)
     p_h2.font.color.rgb = RGBColor(0xE2, 0xE8, 0xF0)
 
     # Карточки места в курсе и лектора
@@ -546,9 +580,9 @@ def build_deck():
         builder, s1, 0.65, 4.08, 7.65, 2.55,
         "Место лекции в архитектуре курса:",
         [
-            "Логическое продолжение Лекции №3 (термодинамика коллоидов и мицелл ПАВ): переход к плоским и искривленным твердотельным межфазным границам.",
-            "Модельные системы: квантовые точки InAs/GaAs (SK-рост, МЛЭ), слои AlGaAs/GaAs (HEMT), наночернила Ag и мезопористый кремнезем SBA-15.",
-            "Фундамент для Раздела 2 (Лекция №5 «Кристаллографические дефекты и дислокации несоответствия»)."
+            "Логическое продолжение Лекции №3 (коллоиды и поверхностно-активные вещества (ПАВ)): переход к твердотельным межфазным границам.",
+            "Модельные системы: квантовые точки (КТ) InAs/GaAs в молекулярно-лучевой эпитаксии (МЛЭ), гетеропары AlGaAs/GaAs и мезопористый SiO₂.",
+            "Фундамент для следующей темы курса — Лекции №5 «Кристаллографические дефекты и дислокации несоответствия»."
         ],
         accent=SUAI_BLUE, font_size=12
     )
@@ -610,7 +644,7 @@ def build_deck():
     builder.add_figure(
         s2, os.path.join(FIG_DIR, "fig_02_problem_cases.png"),
         x=7.08, y=1.58, w=5.70, h=4.52,
-        caption="Рис. 1. Контраст деветтинга СЭМ (вверху) и послойной эпитаксии ПЭМ (внизу)"
+        caption="Рис. 1. Микрофотографии атомно-силовой (АСМ), просвечивающей (ПЭМ) и сканирующей микроскопии (СЭМ)"
     )
     builder.add_takeaway_banner(
         s2, "Инженерный вывод: все шесть видов технологического брака управляются четырьмя законами термодинамики поверхности.",
@@ -631,8 +665,8 @@ def build_deck():
         builder, s3, 0.55, 1.62, 5.25, 1.42,
         "Разделы 1–2: Смачивание и кривизна",
         [
-            "Поверхностная энергия σ, работы Дюпре Wc и Wa, краевой угол Юнга θ и критерий растекания Гаркинса S ≥ 0.",
-            "Капиллярное давление Лапласа ΔP = 2σ/R, уравнение Кельвина, созревание Оствальда в КТ и порометрия BJH."
+            "Поверхностная энергия σ, работы Дюпре W_c и W_a, краевой угол Юнга θ и критерий растекания Гаркинса S ≥ 0.",
+            "Давление Лапласа ΔP = 2σ/R, закон Кельвина, созревание Оствальда в КТ и порометрия Баррета – Джойнера – Халенды (BJH)."
         ],
         accent=SUAI_BLUE, font_size=11
     )
@@ -640,8 +674,8 @@ def build_deck():
         builder, s3, 0.55, 3.16, 5.25, 1.42,
         "Раздел 3: Гетероэпитаксиальный рост",
         [
-            "Термодинамический баланс Бауэра Δσ и накопление упругой энергии деформации решетки E_упр ∝ ε²h.",
-            "Режимы роста FM (2D-слои ДЭГ, контроль ДБЭО / RHEED), VW (3D-островки) и SK (самоорганизация КТ)."
+            "Критерий Бауэра Δσ, упругая деформация E_упр ∝ ε²h и дифракция быстрых электронов на отражение (ДБЭО / RHEED).",
+            "Режимы Франка – ван дер Мерве (FM, 2D), Фольмера – Вебера (VW, 3D) и Странского – Крастанова (SK, 2D→3D КТ)."
         ],
         accent=ACCENT_GREEN, font_size=11
     )
@@ -650,7 +684,7 @@ def build_deck():
         "Раздел 4: Адсорбция и метрология БЭТ",
         [
             "Разграничение физисорбции (силы Ван-дер-Ваальса) и хемосорбции (ковалентный монослой).",
-            "Изотерма Ленгмюра для наносенсоров, полимолекулярная теория БЭТ и эталон ИЮПАК / IUPAC (N₂, 77 К)."
+            "Изотерма Ленгмюра, теория БЭТ и классификация Международного союза теоретической и прикладной химии (ИЮПАК / IUPAC)."
         ],
         accent=ACCENT_PURPLE, font_size=11
     )
@@ -699,10 +733,10 @@ def build_deck():
     )
     add_r3_card(
         builder, s5, 0.55, 3.18, 5.55, 1.40,
-        "2. Работа когезии однородной фазы (Wc):",
+        "2. Работа когезии однородной фазы (W_c):",
         [
-            "Разрыв единичного сечения однородной жидкости или кристалла рождает две идентичные поверхности площадью по 1 м²:",
-            "Формула когезии: Wc = 2σ_l (характеризует прочность внутренних связей материала)."
+            "Разрыв единичного сечения однородной жидкости или кристалла рождает две идентичные поверхности площадью по 1 м².",
+            "Формула когезии: W_c = 2σ_l (характеризует прочность внутренних связей материала)."
         ],
         accent=SUAI_BLUE, font_size=11
     )
@@ -710,18 +744,18 @@ def build_deck():
         builder, s5, 0.55, 4.68, 5.55, 1.40,
         "3. Работа адгезии разнородных фаз (уравнение Дюпре):",
         [
-            "При отрыве пленки от подложки исчезает межфазная граница σ_sl и возникают две свободные границы σ_s и σ_l:",
-            "Уравнение А. Дюпре (1869): Wa = σ_s + σ_l − σ_sl (чем ниже межфазное натяжение σ_sl, тем прочнее сцепление)."
+            "При отрыве пленки от подложки исчезает межфазная граница σ_sl и возникают две свободные границы σ_s и σ_l.",
+            "Уравнение А. Дюпре (1869): W_a = σ_s + σ_l − σ_sl (чем ниже межфазное натяжение σ_sl, тем прочнее сцепление)."
         ],
         accent=ACCENT_GREEN, font_size=11
     )
     builder.add_figure(
         s5, os.path.join(FIG_DIR, "fig_05_surface_energy_dupre.png"),
         x=6.25, y=1.58, w=6.50, h=4.50,
-        caption="Рис. 3. Дефицит координации атомов поверхности (а) и схема работ Wc и Wa Дюпре (б)"
+        caption="Рис. 3. Дефицит координации атомов поверхности (а) и схема работ W_c и W_a Дюпре (б)"
     )
     builder.add_takeaway_banner(
-        s5, "Вывод: прочное сцепление нанопленки с подложкой достигается максимизацией Wa через снижение межфазной энергии σ_sl.",
+        s5, "Вывод: прочное сцепление нанопленки с подложкой достигается максимизацией W_a через снижение межфазной энергии σ_sl.",
         y=6.22, h=0.58
     )
     builder.add_footer(s5)
@@ -740,7 +774,7 @@ def build_deck():
         builder, s6, 0.55, 1.62, 5.55, 1.45,
         "1. Уравнение Т. Юнга (1805):",
         [
-            "Баланс горизонтальных проекций натяжений на линии трех фаз дает равновесный краевой угол θ:",
+            "Баланс горизонтальных проекций натяжений на линии трех фаз дает равновесный краевой угол θ.",
             "cos θ = (σ_s − σ_sl) / σ_l. При θ < 90° наблюдается смачивание (гидрофильность), при θ > 90° — несмачивание."
         ],
         accent=SUAI_BLUE, font_size=11
@@ -749,8 +783,8 @@ def build_deck():
         builder, s6, 0.55, 3.18, 5.55, 1.40,
         "2. Объединенное уравнение Дюпре – Юнга:",
         [
-            "Подстановка σ_s − σ_sl = σ_l·cos θ исключает неизмеримые энергии твердых границ:",
-            "Wa = σ_l·(1 + cos θ) — прямое определение работы адгезии по оптическому измерению угла θ и натяжения жидкости σ_l."
+            "Подстановка σ_s − σ_sl = σ_l·cos θ исключает неизмеримые энергии твердых границ.",
+            "W_a = σ_l·(1 + cos θ) — прямое определение работы адгезии по оптическому измерению угла θ и натяжения жидкости σ_l."
         ],
         accent=ACCENT_GREEN, font_size=11
     )
@@ -788,9 +822,9 @@ def build_deck():
         builder, s7, 0.55, 1.62, 5.55, 2.15,
         "Кейс 1. Кислородная плазма в печатной наноэлектронике:",
         [
-            "На необработанном полиимиде серебряные наночернила (Ag) имеют угол θ ≈ 85°, что ведет к разрыву проводящих дорожек.",
+            "На необработанном полиимиде серебряные наночернила (Ag) имеют угол θ ≈ 65°, что ведет к разрыву проводящих дорожек.",
             "Обработка в O₂-плазме прививает полярные группы −OH и −COOH, повышая энергию подложки σ_s.",
-            "Результат: скачкообразное снижение угла θ с 85° до 12° (S → 0) и формирование бездефектных шин."
+            "Результат: скачкообразное снижение угла θ с 65° до 15° (S → 0) и формирование бездефектных шин."
         ],
         accent=SUAI_BLUE, font_size=11
     )
@@ -1107,7 +1141,7 @@ def build_deck():
         "3. Эталонная система наноэлектроники:",
         [
             "Гетеропара Al_xGa_{1−x}As / GaAs (001) с рассогласованием решеток менее ε = 0.04%.",
-            "Атомарно-гладкая граница формирует двумерный электронный газ (ДЭГ) для СВЧ-транзисторов HEMT."
+            "Атомарно-гладкая граница формирует двумерный электронный газ (ДЭГ) для транзисторов с высокой подвижностью электронов (HEMT)."
         ],
         accent=SUAI_NAVY, font_size=11
     )
@@ -1230,8 +1264,8 @@ def build_deck():
     )
     rows_s18 = [
         ["Инженерный критерий", "Франк – ван дер Мерве (FM, 2D)", "Фольмер – Вебер (VW, 3D)", "Странский – Крастанов (SK, 2D→3D)"],
-        ["Баланс энергий Бауэра Δσ", "Δσ ≤ 0 (Wa ≥ Wc, смачивание)", "Δσ > 0 (Wa < Wc, несмачивание)", "Δσ ≤ 0 на старте (смачивание)"],
-        ["Рассогласование решеток ε", "ε ≈ 0 (< 0.1%, изопериодные)", "Любое (часто металл на оксиде)", "Умеренное: |ε| ≈ 1% – 8%"],
+        ["Баланс энергий Бауэра Δσ", "Δσ ≤ 0 (W_a ≥ W_c, смачивание)", "Δσ > 0 (W_a < W_c, несмачивание)", "Δσ ≤ 0 на старте (смачивание)"],
+        ["Рассогласование решеток ε", "ε ≈ 0 (< 0.1%, изопериодные)", "Любое (часто металл на оксиде)", "Умеренное (|ε| ≈ 1% – 8%)"],
         ["Эволюция морфологии", "Гладкие 2D-монослои с 1-го МС", "Сразу 3D-островки → коалесценция", "2D смачивающий слой → 3D-пирамиды"],
         ["Критическая особенность", "Осцилляции ДБЭО (1 период = 1 МС)", "Порог перколяции h_перк > 10–15 нм", "Порог перехода h_c ≈ 1.7 МС (InAs)"],
         ["Эталонные материалы", "AlGaAs / GaAs(001), Si / Si", "Au, Ag, Cu на SiO₂ и стекле", "InAs / GaAs(001), Ge / Si(001)"],
@@ -1482,7 +1516,7 @@ def build_deck():
         "Заключение и интеграция | Преодоление 6 барьеров и мост к Разделу 2 курса"
     )
     summary_items = [
-        ("P1", "Барьер 1 (Отслаивание и капли)", "Формула Дюпре – Юнга Wa = σ_l(1+cos θ), параметр Гаркинса S ≥ 0 и O₂-плазменная активация (θ: 85° → 12°).", SUAI_BLUE),
+        ("P1", "Барьер 1 (Отслаивание и капли)", "Формула Дюпре – Юнга W_a = σ_l(1+cos θ), параметр Гаркинса S ≥ 0 и O₂-плазменная активация (θ: 65° → 15°).", SUAI_BLUE),
         ("P2", "Барьер 2 (Схлопывание нанопор)", "Закон Лапласа ΔP = 2σ/R (~720 атм при 2 нм), капиллярная конденсация и распределение мезопор методом BJH.", ACCENT_ORANGE),
         ("P3", "Барьер 3 (Созревание Оствальда)", "Уравнение Кельвина для химпотенциала малых КТ, термошок горячего впрыска (300 → 220 °C) и пассивация ПАВ.", ACCENT_RED),
         ("P4", "Барьер 4 (Разрыв тонких пленок)", "Критерий Бауэра Δσ ≤ 0 для 2D-роста FM (контроль ДБЭО / RHEED) и адгезионный подслой Ti/Cr для подавления VW.", ACCENT_GREEN),

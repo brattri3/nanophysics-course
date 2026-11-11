@@ -42,13 +42,17 @@ def run_verification():
     spo_leaks = 0
     q_marks = 0
     forbidden_hits = 0
+    raw_underscores = 0
     r3_blue_runs = 0
     notes_valid = 0
     divider_ok = 0
+    slide1_has_logo = False
 
     for idx, slide in enumerate(prs.slides, start=1):
         slide_texts = []
         for sh in slide.shapes:
+            if idx == 1 and sh.shape_type == 13:  # MSO_SHAPE_TYPE.PICTURE
+                slide1_has_logo = True
             if sh.has_text_frame:
                 slide_texts.append(sh.text_frame.text)
                 for p in sh.text_frame.paragraphs:
@@ -64,6 +68,14 @@ def run_verification():
                         slide_texts.append(cell.text_frame.text)
 
         full_text = "\n".join(slide_texts)
+
+        if "_" in full_text or "{" in full_text or "}" in full_text:
+            print(f"  [RAW MARKUP] Слайд {idx}: обнаружены необработанные символы '_' или '{{}}'!")
+            raw_underscores += 1
+
+        if idx in (7, 24):
+            assert "65°" in full_text and "15°" in full_text, f"Слайд {idx}: нарушена численная согласованность углов O2-плазмы (65° -> 15°)!"
+            assert "85°" not in full_text, f"Слайд {idx}: устаревшее значение 85°!"
 
         if idx > 1:
             if SPO_FORBIDDEN_RX.search(full_text):
@@ -116,15 +128,19 @@ def run_verification():
             if clearance < min_clearance_px:
                 min_clearance_px = clearance
 
+    print(f"Официальный логотип ГУАП на Слайде 1: {'OK' if slide1_has_logo else 'MISSING'}")
     print(f"Разделители разделов (#002C5F): {divider_ok}/4 OK")
     print(f"Утечки реквизитов SPO (Слайды 2–24): {spo_leaks} (ожидается 0)")
+    print(f"Необработанные индексы ('_' или '{{}}'): {raw_underscores} (ожидается 0)")
     print(f"Вопросительные знаки (?): {q_marks} (ожидается 0)")
     print(f"Запрещенные слова (ЛР и др.): {forbidden_hits} (ожидается 0)")
     print(f"Подсвеченные ранги R3 (#005AAA bold): {r3_blue_runs} (> 50)")
     print(f"Валидные 4-компонентные заметки докладчика: {notes_valid}/24")
     print(f"Проверено PNG-превью контентных слайдов: {checked_previews}/19 | Мин. клиренс шапки: {min_clearance_px} px (норма >= 25 px)")
 
+    assert slide1_has_logo, "На Слайде 1 отсутствует официальный логотип ГУАП!"
     assert spo_leaks == 0
+    assert raw_underscores == 0, f"Обнаружены сырые символы '_' или '{{}}' на {raw_underscores} слайдах!"
     assert q_marks == 0
     assert forbidden_hits == 0
     assert divider_ok == 4

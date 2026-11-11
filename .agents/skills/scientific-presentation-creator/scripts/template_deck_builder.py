@@ -173,10 +173,9 @@ def add_signature_gradient_line(slide, left: float = 0.60, top: float = 1.06,
     line = slide.shapes.add_shape(
         MSO_SHAPE.RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height)
     )
-    line.line.fill.background()  # Убираем стандартную рамку фигуры
     spPr = line._element.spPr
     for child in list(spPr):
-        if child.tag.endswith("solidFill") or child.tag.endswith("gradFill"):
+        if child.tag.endswith("solidFill") or child.tag.endswith("gradFill") or child.tag.endswith("ln"):
             spPr.remove(child)
 
     grad_xml = (
@@ -196,6 +195,7 @@ def add_signature_gradient_line(slide, left: float = 0.60, top: float = 1.06,
         '</a:gradFill>'
     )
     spPr.append(parse_xml(grad_xml))
+    line.line.fill.background()  # Убираем стандартную рамку фигуры (ln идет строго после gradFill)
     return line
 
 
